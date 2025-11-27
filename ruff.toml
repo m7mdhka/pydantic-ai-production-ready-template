@@ -1,0 +1,62 @@
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "alembic/",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "tests/"
+]
+
+line-length = 88
+indent-width = 4
+
+target-version = "py313"
+
+[lint]
+select = ["ALL"]
+ignore = [
+    "INP001",
+    "B008",
+    "D104"
+]
+
+fixable = ["ALL"]
+unfixable = []
+
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[lint.per-file-ignores]
+"test_*.py" = ["S101"]
+"tests.py" = ["S101"]
+"tests_*.py" = ["S101"]
+"*/tests/*" = ["S101"]
+"conftest.py" = ["S101"]
+"__init__.py" = ["F401", "F403"]

@@ -1,0 +1,9 @@
+model_list:
+  - model_name: ollama/codellama:7b-code
+    litellm_params:
+      model: ollama/codellama:7b-code
+      api_base: "http://host.docker.internal:8001"
+
+litellm_settings:
+  drop_params: true
+  set_verbose: False
