@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import TypedDict, cast
 
 from jwt.algorithms import get_default_algorithms
-from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, field_validator
+from pydantic import Field, HttpUrl, PostgresDsn, RedisDsn, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 parent_dir = Path(__file__).resolve().parents[2]
 
@@ -75,16 +76,21 @@ class Settings(BaseSettings):
     database_name: str
 
     redis_password: SecretStr
-    redis_port: int
-    redis_host: str
+    redis_host: str = Field(default="localhost")
 
     jwt_secret_key: SecretStr = Field(
         default_factory=lambda: SecretStr(secrets.token_hex(32)),
     )
     jwt_algorithm: str = Field(default="HS256")
 
-    @field_validator("jwt_algorithm", mode="plain")
-    def validate_jwt_algorithm(self, v: str) -> str:
+    litellm_base_url: HttpUrl = Field(default=HttpUrl("http://localhost:4000"))
+    debug: bool = Field(default=False)
+
+    access_token_expire_minutes: int = Field(default=30)
+
+    @field_validator("jwt_algorithm", mode="before")
+    @classmethod
+    def validate_jwt_algorithm(cls, v: str) -> str:
         """Validate JWT algorithm."""
         if v not in get_default_algorithms():
             msg = f"Invalid JWT algorithm: {v}"
@@ -98,7 +104,7 @@ class Settings(BaseSettings):
             scheme="redis",
             password=self.redis_password.get_secret_value(),
             host=self.redis_host,
-            port=self.redis_port,
+            port=6379,
         )
 
     @property

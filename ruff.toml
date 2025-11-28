@@ -39,7 +39,11 @@ select = ["ALL"]
 ignore = [
     "INP001",
     "B008",
-    "D104"
+    "D104",
+    "TRY003",
+    "EM102",
+    "PLR0915",
+    "FAST001"
 ]
 
 fixable = ["ALL"]
@@ -52,6 +56,11 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[lint.isort]
+force-single-line = false
+split-on-trailing-comma = true
+lines-after-imports = 2
 
 [lint.per-file-ignores]
 "test_*.py" = ["S101"]

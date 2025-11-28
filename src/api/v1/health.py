@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from core.config import PROJECT_INFO
 from src.schemas.extras import HealthCheck
 
+
 health_router = APIRouter()
 
 

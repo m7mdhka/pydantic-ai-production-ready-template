@@ -17,7 +17,7 @@ class Base(MappedAsDataclass, DeclarativeBase):
 engine = create_async_engine(
     settings.database_url.unicode_string(),
     future=True,
-    echo=settings.environment == "development",
+    echo=settings.debug,
     pool_pre_ping=True,
 )
 

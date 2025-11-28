@@ -9,7 +9,9 @@ from guard.middleware import SecurityMiddleware
 from guard.models import SecurityConfig
 from loguru import logger
 
+from src.admin import admin
 from src.core.config import PROJECT_INFO, settings
+
 
 logfire.configure(
     token=(
@@ -55,3 +57,4 @@ app = FastAPI(
 )
 
 app.add_middleware(SecurityMiddleware, config=config)
+admin.mount_to(app)

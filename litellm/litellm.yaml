@@ -1,9 +1,13 @@
-model_list:
-  - model_name: ollama/codellama:7b-code
-    litellm_params:
-      model: ollama/codellama:7b-code
-      api_base: "http://host.docker.internal:8001"
+model_list: []
 
 litellm_settings:
   drop_params: true
   set_verbose: False
+
+general_settings:
+  cache: true
+  cache_params:
+    type: "redis"
+    ttl: 600
+
+  track_cost_per_deployment: true

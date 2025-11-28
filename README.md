@@ -1,105 +1,65 @@
 # Pydantic AI Production Ready Template
 
-## First Time Setup
+A production-ready template for building applications with Pydantic AI, FastAPI, and modern Python tooling.
 
-Follow these steps to get started with the project:
+## Requirements
 
-### 1. Install Dependencies
+- Python >= 3.13
+- [uv](https://github.com/astral-sh/uv) package manager
+
+## Installation
+
+Install project dependencies:
+
+```bash
+make install
+```
+
+For development, install with dev dependencies:
 
 ```bash
 make install-dev
 ```
 
-This will install all project dependencies including development tools.
+## Development Setup
 
-### 2. Configure Environment Variables
+### Pre-commit Hooks
 
-Copy the example environment file and update it with your values:
-
-```bash
-cp .env.example .env.development
-```
-
-Edit `.env.development` and update the following:
-
-- **LOGFIRE_TOKEN**: Get your token from [Logfire](https://logfire.pydantic.dev) (see instructions below)
-- **DATABASE_***: Update database credentials if needed (defaults work with Docker)
-- **PGADMIN_***: Configure pgAdmin credentials if needed
-
-### 3. Configure LOGFIRE_TOKEN
-
-1. Sign in to https://logfire.pydantic.dev
-2. Go to projects
-3. Go to New project
-4. Add project name and select visibility to Private
-5. After this you will be redirected to Settings page of the project you have created
-6. Go to write tokens and press on "New write token" to create a new token
-7. Copy the token and add it to your `.env.development` file as `LOGFIRE_TOKEN=your_token_here`
-
-### 4. Start Docker Services
-
-Start PostgreSQL, pgAdmin, and other services:
+Pre-commit won't run automatically until you actually install the hooks into `.git/hooks`. Run the installer once (it's not in git history) so Git knows to invoke them:
 
 ```bash
-make docker-dev-up
+uv run pre-commit install --hook-type pre-commit --hook-type commit-msg
 ```
 
-This will start:
-- PostgreSQL 17 (port 5432)
-- pgAdmin 4 (port 5050, default: admin@admin.com / admin)
-- Redis (port 6379)
-- LiteLLM (port 4000)
-- Ollama (port 11434)
-
-**Container Monitoring:**
-- Grafana (port 3000) - Dashboards and visualization
-- Prometheus (port 9090) - Metrics collection
-- Docker Exporter (port 9487) - Container metrics
-
-> 📊 **View Container Metrics**: http://localhost:3000/d/docker-containers
-> 📖 For detailed monitoring documentation, see [MONITORING.md](MONITORING.md)
-
-#### Quick Access
-
-- **Container Dashboard**: http://localhost:3000/d/docker-containers
-- **Grafana Home**: http://localhost:3000 (admin/admin)
-- **Prometheus**: http://localhost:9090
-- **pgAdmin**: http://localhost:5050 (admin@admin.com/admin)
-
-### 5. Run Database Migrations
-
-Create and apply the initial database schema:
+After that, every `git commit` will trigger the lint/format checks plus the Commitizen commit-msg hook from your `.pre-commit-config.yaml`. If you ever need to lint everything manually, use:
 
 ```bash
-make migration-create MESSAGE="initial migration"
-make migration-upgrade
+uv run pre-commit run --all-files
 ```
 
-### 6. Start the Application
-
-Run the FastAPI application in development mode:
+Alternatively, you can use the Makefile targets:
 
 ```bash
-make run-dev
+make pre-commit-install  # Install pre-commit hooks
+make pre-commit-run      # Run pre-commit hooks on all files
 ```
 
-The application will be available at `http://localhost:8000`
+## Available Commands
 
-### 7. (Optional) Install Pre-commit Hooks
+Run `make help` to see all available commands, or use:
 
-To automatically run linting and formatting on commit:
+- `make install` - Install project dependencies
+- `make install-dev` - Install project dependencies including dev dependencies
+- `make run` - Run the application in production mode
+- `make run-dev` - Run the application in development mode with auto-reload
+- `make format` - Format code using Ruff
+- `make test` - Run tests using pytest
+- `make test-cov` - Run tests with coverage report
+- `make docker-dev-up` - Start development Docker services
+- `make docker-dev-down` - Stop development Docker services
+- `make migration-create MESSAGE="message"` - Create a new migration
+- `make migration-upgrade` - Upgrade database to the latest migration
 
-```bash
-make pre-commit-install
-```
+## License
 
-## Common Commands
-
-- `make help` - Show all available commands
-- `make run-dev` - Run the application in development mode
-- `make docker-dev-up` - Start all Docker services
-- `make docker-dev-down` - Stop all Docker services
-- `make migration-upgrade` - Apply database migrations
-- `make format` - Format code with Ruff
-- `make test` - Run tests
-
+[Add your license here]

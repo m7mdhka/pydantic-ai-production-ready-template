@@ -11,6 +11,7 @@ from src.schemas.user import (
     UserUpdate,
 )
 
+
 __all__ = [
     "HealthCheck",
     "Token",

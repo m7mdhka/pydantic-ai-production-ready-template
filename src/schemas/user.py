@@ -6,6 +6,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, SecretStr
 
+
 MIN_PASSWORD_LENGTH = 8
 
 
@@ -49,7 +50,7 @@ class UserCreate(UserBase):
     password: PasswordStr = Field(
         ...,
         max_length=100,
-        description="User's password (minimum 8 characters)",
+        description="User's password",
     )
 
 
@@ -66,7 +67,7 @@ class UserUpdate(BaseModel):
     password: PasswordStr | None = Field(
         None,
         max_length=100,
-        description="User's password (minimum 8 characters)",
+        description="User's password",
     )
     is_superuser: bool | None = Field(
         None,

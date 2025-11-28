@@ -18,6 +18,7 @@ dependencies = [
     "fastapi-guard>=4.2.1",
     "passlib[bcrypt]>=1.7.4",
     "python-jose[cryptography]>=3.3.0",
+    "starlette-admin>=0.15.1",
 ]
 
 [dependency-groups]
@@ -34,6 +35,7 @@ dev = [
     "ruff>=0.14.0",
     "types-passlib>=1.7.7.20250602",
     "types-python-jose>=3.5.0.20250531",
+    "pydantic-evals[logfire]>=1.16.0",
 ]
 
 [tool.hatch.build.targets.wheel]

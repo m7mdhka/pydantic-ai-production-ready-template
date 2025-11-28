@@ -37,16 +37,16 @@ test-cov: ## Run tests with coverage report
 	uv run pytest --cov=src --cov-report=html --cov-report=term
 
 docker-dev-up: ## Start development Docker services
-	docker-compose -f docker-compose.dev.yml up -d
+	docker-compose --env-file .env.development -f docker-compose.dev.yml up -d
 
 docker-dev-down: ## Stop development Docker services
-	docker-compose -f docker-compose.dev.yml down -v
+	docker-compose --env-file .env.development -f docker-compose.dev.yml down -v
 
 docker-dev-logs: ## View development Docker services logs
-	docker-compose -f docker-compose.dev.yml logs -f
+	docker-compose --env-file .env.development -f docker-compose.dev.yml logs -f
 
 docker-dev-restart: ## Restart development Docker services
-	docker-compose -f docker-compose.dev.yml restart
+	docker-compose --env-file .env.development -f docker-compose.dev.yml restart
 
 docker-up: ## Start production Docker services
 	docker-compose -f docker-compose.yml up -d

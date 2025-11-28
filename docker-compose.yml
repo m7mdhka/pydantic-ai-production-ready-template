@@ -1,4 +1,30 @@
 services:
+  pydantic-ai:
+    container_name: pydantic-ai
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - database
+      - litellm-net
+      - monitoring
+    restart: unless-stopped
+    environment:
+      LITELLM_BASE_URL: "http://litellm:4000"
+      REDIS_HOST: "redis"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   litellm:
     container_name: litellm-proxy
     image: "ghcr.io/berriai/litellm:main-latest"
@@ -7,16 +33,28 @@ services:
     command: [ "--config", "/app/litellm/litellm.yaml", "--port", "4000" ]
     restart: unless-stopped
     ports:
-      - "${LITELLM_PORT:-4000}:4000"
+      - "4000:4000"
     networks:
       - litellm-net
+      - database
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DATABASE_USER:-postgres}:${DATABASE_PASSWORD:-postgres}@postgres:5432/${DATABASE_NAME:-pydantic_ai_db}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      STORE_MODEL_IN_DB: "True"
+      PROXY_ADMIN_ID: "${LITELLM_PROXY_ADMIN_ID:-admin}"
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-admin-key}
 
   ollama:
     container_name: ollama
     image: "ollama/ollama"
     command: ["serve"]
-    ports:
-      - "${OLLAMA_PORT:-11434}:11434"
+    expose:
+      - "11434"
     volumes:
       - codellama:/usr/share/ollama/.ollama/models
     networks:
@@ -44,8 +82,8 @@ services:
   prometheus:
     container_name: prometheus
     image: prom/prometheus:latest
-    ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+    expose:
+      - "9090"
     volumes:
       - prometheus-storage:/prometheus
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -69,8 +107,8 @@ services:
   docker-exporter:
     container_name: docker-exporter
     image: wywywywy/docker_stats_exporter:latest
-    ports:
-      - "${DOCKER_EXPORTER_PORT:-9487}:9487"
+    expose:
+      - "9487"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -84,8 +122,8 @@ services:
       POSTGRES_USER: ${DATABASE_USER:-postgres}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
       POSTGRES_DB: ${DATABASE_NAME:-pydantic_ai_db}
-    ports:
-      - "${DATABASE_PORT:-5432}:5432"
+    expose:
+      - "5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
@@ -101,8 +139,8 @@ services:
     container_name: redis
     image: redis:7-alpine
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    expose:
+      - "6379"
     volumes:
       - redis-data:/data
     networks:

@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,7 +66,7 @@ class UserService:
             msg = f"User with email {user_data.email} already exists"
             raise UserAlreadyExistsError(msg)
 
-        hashed_password = hash_password(user_data.password)
+        hashed_password = hash_password(user_data.password.get_secret_value())
 
         user = User(
             name=user_data.name,
@@ -151,14 +151,8 @@ class UserService:
 
         if user_data.name is not None:
             user.name = user_data.name
-        if user_data.email is not None:
-            user.email = user_data.email
-        if user_data.password is not None:
-            user.hashed_password = hash_password(user_data.password)
         if user_data.is_superuser is not None:
             user.is_superuser = user_data.is_superuser
-
-        user.updated_at = datetime.now(UTC)
 
         try:
             await self.session.flush()
@@ -226,18 +220,25 @@ class UserService:
             A tuple of (list of users, total count).
 
         """
-        query = select(User)
-        count_query = select(User).with_only_columns(User.id)
-
+        criteria = []
         if not include_deleted:
-            query = query.where(~User.is_deleted)
-            count_query = count_query.where(~User.is_deleted)
+            criteria.append(User.is_deleted.is_(False))
 
-        count_result = await self.session.execute(count_query)
-        total = len(count_result.scalars().all())
+        count_query = select(func.count()).select_from(User)
+        if criteria:
+            count_query = count_query.where(*criteria)
 
-        offset = (page - 1) * page_size
-        query = query.offset(offset).limit(page_size).order_by(User.created_at.desc())
+        total = await self.session.scalar(count_query) or 0
+
+        query = select(User)
+        if criteria:
+            query = query.where(*criteria)
+
+        query = (
+            query.order_by(User.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
 
         result = await self.session.execute(query)
         users = list(result.scalars().all())
@@ -269,14 +270,7 @@ class UserService:
         return user
 
     async def user_exists(self, email: str) -> bool:
-        """Check if a user with the given email exists.
-
-        Args:
-            email: The email to check.
-
-        Returns:
-            True if the user exists, False otherwise.
-
-        """
-        user = await self.get_user_by_email(email)
-        return user is not None
+        """Check existence efficiently."""
+        query = select(1).where(User.email == email).limit(1)
+        result = await self.session.execute(query)
+        return result.scalar() is not None
