@@ -243,6 +243,68 @@ The pre-configured dashboard provides insights into:
 3. You can edit existing dashboards or create new ones
 4. Custom dashboards are stored in `./grafana/provisioning/dashboards/json/` for persistence
 
+## LiteLLM Proxy
+
+The application includes LiteLLM Proxy, a unified interface to manage multiple LLM providers, enabling easy model switching, cost tracking, and usage monitoring.
+
+### Accessing LiteLLM UI
+
+1. Start the Docker services (includes LiteLLM Proxy):
+   ```bash
+   make docker-dev-up
+   ```
+
+2. Navigate to `http://localhost:4000` in your browser.
+
+3. Log in using your configured credentials from `.env.development`:
+   - **Username**: `admin` (or `LITELLM_UI_USERNAME` from your env file)
+   - **Password**: `password` (or `LITELLM_UI_PASSWORD` from your env file)
+
+### LiteLLM Configuration
+
+LiteLLM is pre-configured with:
+
+- **PostgreSQL Database**: Stores model configurations and usage data
+- **Redis Cache**: Enables response caching for improved performance
+- **Cost Tracking**: Automatically tracks costs per deployment/model
+
+#### Environment Variables
+
+Configure LiteLLM in your `.env.development` or `.env.production` file:
+
+```bash
+# LiteLLM Configuration
+LITELLM_PROXY_ADMIN_ID=admin                    # Admin user ID
+LITELLM_MASTER_KEY=sk-password                  # Master key (must start with "sk-")
+LITELLM_UI_USERNAME=admin                       # UI login username
+LITELLM_UI_PASSWORD=password                    # UI login password
+```
+
+#### Model Configuration
+
+The LiteLLM configuration file is located at `./litellm/litellm.yaml`. You can edit this file to add or modify model configurations.
+
+### Features
+
+#### Adding Models and Endpoints
+Configure and manage LLM models from various providers (OpenAI, Anthropic, Google, etc.) and set up custom endpoints.
+
+![LiteLLM Models and Endpoints](assets/images/litellm_models_endpoints.png)
+
+#### Virtual API Keys
+Create and manage virtual API keys for different teams or projects, enabling usage tracking and access control.
+
+![LiteLLM API Keys](assets/images/litellm_api_keys.png)
+
+#### Usage Tracking
+Monitor usage statistics for each team or API key, including token consumption, costs, and request metrics.
+
+![LiteLLM Usage Tracking](assets/images/litellm_usage.png)
+
+### Default Port
+
+LiteLLM Proxy runs on port `4000` by default. You can change this by setting the `LITELLM_PORT` environment variable in your docker-compose configuration.
+
 ## License
 
 [Add your license here]
