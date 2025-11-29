@@ -24,6 +24,7 @@ jobs:
         uses: astral-sh/setup-uv@v1
         with:
           enable-cache: true
+          version: "latest"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,7 +32,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --all-groups
 
       - name: Run tests
         run: uv run nox -s test -- --junitxml junit.xml
