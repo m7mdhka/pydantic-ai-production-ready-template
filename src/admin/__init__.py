@@ -15,9 +15,7 @@ from starlette_admin.auth import AdminConfig, AdminUser, AuthProvider
 from starlette_admin.contrib.sqla import Admin
 from starlette_admin.exceptions import FormValidationError, LoginFailed
 
-from src.admin.views.environment_variables import EnvSettingsView
-from src.admin.views.prompt_versioning_control import PromptManagerView
-from src.admin.views.users import UsersView
+from src.admin.views import EnvSettingsView, PromptManagerView, UsersView
 from src.core.security import verify_password
 from src.database.database import async_session_factory, engine
 from src.models import User

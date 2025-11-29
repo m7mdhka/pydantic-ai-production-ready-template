@@ -75,3 +75,4 @@ lines-after-imports = 2
 "*/tests/*" = ["S101"]
 "conftest.py" = ["S101"]
 "__init__.py" = ["F401", "F403"]
+"src/models/*.py" = ["TC010"]  # Ignore union type string member errors in models

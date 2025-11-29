@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -17,6 +18,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from src.database.database import Base
+
+
+if TYPE_CHECKING:
+    from src.models.user import User
 
 
 class Prompt(Base):
@@ -62,7 +67,7 @@ class Prompt(Base):
         init=False,
     )
 
-    versions = relationship(
+    versions: Mapped[list["PromptVersion"]] = relationship(
         "PromptVersion",
         back_populates="prompt",
         cascade="all, delete-orphan",
@@ -96,7 +101,6 @@ class PromptVersion(Base):
     version_number: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
-        init=False,
     )
 
     content: Mapped[str] = mapped_column(Text, nullable=False)
@@ -125,8 +129,8 @@ class PromptVersion(Base):
         nullable=True,
     )
 
-    prompt = relationship("Prompt", back_populates="versions")
-    created_by = relationship("User")
+    prompt: Mapped["Prompt"] = relationship("Prompt", back_populates="versions")
+    created_by: Mapped["User" | None] = relationship("User")
 
     def __repr__(self) -> str:
         """Return a string representation of the prompt version."""

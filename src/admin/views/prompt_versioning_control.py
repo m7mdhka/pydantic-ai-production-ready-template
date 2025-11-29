@@ -1,16 +1,18 @@
 """Prompt versioning control view."""
 
-import uuid
+import logging
 
-from sqlalchemy import func, select, update
-from sqlalchemy.orm import selectinload
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 from starlette.templating import Jinja2Templates
 from starlette_admin import CustomView
 
-from src.database.database import AsyncSession, async_session_factory
-from src.models.prompt import Prompt, PromptVersion
+from src.database.database import async_session_factory
+from src.database.redis import get_redis_pool
+from src.services.prompt_service import PromptService
+
+
+logger = logging.getLogger(__name__)
 
 
 class PromptManagerView(CustomView):
@@ -29,124 +31,87 @@ class PromptManagerView(CustomView):
         )
         self.templates = templates
 
-    async def _handle_save_commit(
-        self,
-        form: dict,
-        session: AsyncSession,
-        request: Request,
-    ) -> RedirectResponse:
-        """Handle save commit action."""
-        prompt_id_str = form.get("prompt_id")
-        slug = form.get("slug")
-        name = form.get("name")
-        content = form.get("content")
-        commit_msg = form.get("commit_message", "Updated prompt")
-
-        if not prompt_id_str:
-            new_prompt = Prompt(slug=slug, name=name, content=content)
-            session.add(new_prompt)
-            await session.flush()
-            prompt_id = new_prompt.id
-            next_ver = 1
-        else:
-            prompt_id = uuid.UUID(prompt_id_str)
-            await session.execute(
-                update(Prompt)
-                .where(Prompt.id == prompt_id)
-                .values(name=name, content=content),
-            )
-            max_ver = await session.execute(
-                select(func.max(PromptVersion.version_number)).where(
-                    PromptVersion.prompt_id == prompt_id,
-                ),
-            )
-            next_ver = (max_ver.scalar() or 0) + 1
-
-        await session.execute(
-            update(PromptVersion)
-            .where(PromptVersion.prompt_id == prompt_id)
-            .values(is_active=False),
-        )
-
-        new_version = PromptVersion(
-            prompt_id=prompt_id,
-            content=content,
-            commit_message=commit_msg,
-            is_active=True,
-            created_by_id=None,
-        )
-        new_version.version_number = next_ver
-        session.add(new_version)
-        await session.commit()
-
-        return RedirectResponse(
-            url=f"{request.url_for('admin:prompt_editor')}?prompt_id={prompt_id}",
-            status_code=303,
-        )
-
-    async def _handle_activate_version(
-        self,
-        form: dict,
-        session: AsyncSession,
-        request: Request,
-    ) -> RedirectResponse:
-        """Handle activate version action."""
-        version_id = form.get("version_id")
-        prompt_id = form.get("prompt_id")
-
-        ver_result = await session.execute(
-            select(PromptVersion).where(PromptVersion.id == version_id),
-        )
-        target_version = ver_result.scalar_one_or_none()
-
-        if target_version:
-            await session.execute(
-                update(PromptVersion)
-                .where(PromptVersion.prompt_id == prompt_id)
-                .values(is_active=False),
-            )
-            target_version.is_active = True
-            await session.execute(
-                update(Prompt)
-                .where(Prompt.id == prompt_id)
-                .values(content=target_version.content),
-            )
-            await session.commit()
-
-        return RedirectResponse(
-            url=f"{request.url_for('admin:prompt_editor')}?prompt_id={prompt_id}",
-            status_code=303,
-        )
-
-    async def _render_get(
+    async def render(
         self,
         request: Request,
         templates: Jinja2Templates,
     ) -> Response:
-        """Render GET request."""
-        current_prompt_id = request.query_params.get("prompt_id")
-        selected_prompt = None
-
+        """Render the prompt editor."""
         async with async_session_factory() as session:
-            prompts_result = await session.execute(
-                select(Prompt).order_by(Prompt.slug),
-            )
-            all_prompts = prompts_result.scalars().all()
+            service = PromptService(session, await get_redis_pool())
 
-            if current_prompt_id:
-                stmt = (
-                    select(Prompt)
-                    .where(Prompt.id == current_prompt_id)
-                    .options(selectinload(Prompt.versions))
+            if request.method == "POST":
+                return await self._handle_post(request, service)
+
+            return await self._handle_get(request, templates, service)
+
+    async def _handle_post(
+        self,
+        request: Request,
+        service: PromptService,
+    ) -> Response:
+        """Handle Form Submissions."""
+        form = await request.form()
+        action = form.get("action")
+
+        try:
+            prompt_id = None
+
+            if action == "save_commit":
+                slug_value = form.get("slug")
+                name_value = form.get("name")
+                content_value = form.get("content")
+                commit_msg_value = form.get(
+                    "commit_message",
+                    "Updated prompt",
                 )
-                res = await session.execute(stmt)
-                selected_prompt = res.scalar_one_or_none()
+                prompt_id_value = form.get("prompt_id")
 
-                if selected_prompt:
-                    selected_prompt.versions.sort(
-                        key=lambda x: x.version_number,
-                        reverse=True,
-                    )
+                prompt_id = await service.save_prompt_commit(
+                    slug=str(slug_value) if slug_value else "",
+                    name=str(name_value) if name_value else "",
+                    content=str(content_value) if content_value else "",
+                    commit_msg=(
+                        str(commit_msg_value) if commit_msg_value else "Updated prompt"
+                    ),
+                    prompt_id_str=(str(prompt_id_value) if prompt_id_value else None),
+                )
+
+            elif action == "activate_version":
+                version_id_value = form.get("version_id")
+                prompt_id_value = form.get("prompt_id")
+                await service.activate_version(
+                    version_id=str(version_id_value) if version_id_value else "",
+                    prompt_id=str(prompt_id_value) if prompt_id_value else "",
+                )
+                prompt_id = prompt_id_value
+
+            url = request.url_for("admin:prompt_editor")
+            if prompt_id:
+                url = f"{url}?prompt_id={prompt_id}"
+
+            return RedirectResponse(url=url, status_code=303)
+
+        except Exception:
+            logger.exception("Error in prompt editor")
+            raise
+
+    async def _handle_get(
+        self,
+        request: Request,
+        templates: Jinja2Templates,
+        service: PromptService,
+    ) -> Response:
+        """Prepare Data for Rendering."""
+        current_prompt_id = request.query_params.get("prompt_id")
+
+        all_prompts = await service.get_all_prompts_for_admin()
+
+        selected_prompt = None
+        if current_prompt_id:
+            selected_prompt = await service.get_prompt_details_for_admin(
+                current_prompt_id,
+            )
 
         return templates.TemplateResponse(
             request,
@@ -158,33 +123,3 @@ class PromptManagerView(CustomView):
                 "current_prompt_id": current_prompt_id,
             },
         )
-
-    async def render(
-        self,
-        request: Request,
-        templates: Jinja2Templates,
-    ) -> Response:
-        """Render the editor and handle Save/Rollback actions."""
-        if request.method == "POST":
-            form = await request.form()
-            action = form.get("action")
-
-            async with async_session_factory() as session:
-                try:
-                    if action == "save_commit":
-                        return await self._handle_save_commit(
-                            form,
-                            session,
-                            request,
-                        )
-                    if action == "activate_version":
-                        return await self._handle_activate_version(
-                            form,
-                            session,
-                            request,
-                        )
-                except Exception as e:
-                    await session.rollback()
-                    raise e from e
-
-        return await self._render_get(request, templates)
