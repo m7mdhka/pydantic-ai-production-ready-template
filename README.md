@@ -4,101 +4,156 @@ A production-ready template for building applications with Pydantic AI, FastAPI,
 
 ## Architecture Overview
 
-The application follows a layered architecture where user requests flow through multiple services before reaching the LLM provider. Below is a detailed diagram showing how a request is processed:
+The application follows a layered architecture where user requests flow through multiple services before reaching the LLM provider. The flow is broken down into clear, manageable sections below.
+
+### High-Level Flow
+
+```mermaid
+graph LR
+    User[👤 User] -->|1. Request| FastAPI[🚀 FastAPI]
+    FastAPI -->|2. Process| Agent[🤖 Agent]
+    Agent -->|3. Route| LiteLLM[🔀 LiteLLM]
+    LiteLLM -->|4. Call| Provider[🤖 LLM Provider]
+    Provider -->|5. Response| User
+
+    style User fill:#e1f5ff
+    style FastAPI fill:#4CAF50
+    style Agent fill:#FF9800
+    style LiteLLM fill:#2196F3
+    style Provider fill:#9C27B0
+```
+
+<details>
+<summary><b>📥 Part 1: Request Entry & Security</b> (Click to expand)</summary>
 
 ```mermaid
 graph TB
     User[👤 User Request] -->|HTTP Request| FastAPI[🚀 FastAPI Application]
 
     FastAPI --> Security[🛡️ Security Middleware]
-    Security -->|Rate Limiting| RedisCache[💾 Redis Cache]
-    Security -->|Session Management| Session[📝 Session Middleware]
+    Security -->|Rate Limiting| Redis[💾 Redis Cache]
+    Security --> Session[📝 Session Middleware]
 
-    Session --> Auth[🔐 Authentication/Authorization]
-    Auth -->|Valid Token| Agent[🤖 Pydantic AI Agent]
-    Auth -->|Invalid| Error1[❌ 401 Unauthorized]
+    Session --> Auth[🔐 Authentication]
+    Auth -->|Valid| Continue[✅ Continue to Agent]
+    Auth -->|Invalid| Error[❌ 401 Unauthorized]
 
-    Agent --> PromptService[📋 Prompt Service]
-    PromptService -->|Check Cache| RedisCache
-    RedisCache -->|Cache Hit| PromptCache[✅ Cached Prompt]
-    RedisCache -->|Cache Miss| Database[(🗄️ PostgreSQL Database)]
+    style User fill:#e1f5ff
+    style FastAPI fill:#4CAF50
+    style Security fill:#FF5722
+    style Redis fill:#F44336
+    style Auth fill:#FF9800
+    style Error fill:#F44336
+    style Continue fill:#4CAF50
+```
 
-    Database -->|Load Prompt| PromptDB[📝 Prompt Content]
-    PromptDB -->|Store in Cache| RedisCache
-    PromptDB --> PromptCache
+**What happens here:**
+- FastAPI receives the HTTP request
+- Security middleware checks rate limits (stored in Redis)
+- Session middleware manages user sessions
+- JWT token is validated for authentication
+- Invalid requests are rejected immediately
+</details>
 
-    PromptCache --> Agent
-    Agent -->|Configured with Model| LiteLLM[🔀 LiteLLM Proxy]
+<details>
+<summary><b>📋 Part 2: Prompt Retrieval & Caching</b> (Click to expand)</summary>
 
-    LiteLLM -->|Route Request| LLMProvider[🤖 Main LLM Provider]
-    LLMProvider -->|OpenAI| OpenAI[OpenAI API]
-    LLMProvider -->|Anthropic| Anthropic[Anthropic API]
-    LLMProvider -->|Google| Google[Google API]
-    LLMProvider -->|Other| Other[Other Providers]
+```mermaid
+graph TB
+    Agent[🤖 Pydantic AI Agent] --> PromptService[📋 Prompt Service]
+
+    PromptService -->|1. Check Cache| Redis[💾 Redis Cache]
+    Redis -->|Cache Hit| Cached[✅ Return Cached Prompt]
+    Redis -->|Cache Miss| DB[(🗄️ PostgreSQL)]
+
+    DB -->|2. Load Prompt| PromptDB[📝 Prompt Content]
+    PromptDB -->|3. Store in Cache| Redis
+    PromptDB -->|Return| Agent
+
+    Cached --> Agent
+
+    style Agent fill:#FF9800
+    style PromptService fill:#2196F3
+    style Redis fill:#F44336
+    style DB fill:#607D8B
+    style Cached fill:#4CAF50
+```
+
+**What happens here:**
+- Agent requests a prompt by slug/identifier
+- Prompt Service first checks Redis cache (fast)
+- If not cached, loads from PostgreSQL database
+- Caches the prompt in Redis for future requests
+- Uses active version from prompt versioning system
+</details>
+
+<details>
+<summary><b>🔀 Part 3: LLM Routing via LiteLLM</b> (Click to expand)</summary>
+
+```mermaid
+graph TB
+    Agent[🤖 Pydantic AI Agent] -->|Request with Prompt| LiteLLM[🔀 LiteLLM Proxy]
+
+    LiteLLM -->|Route| Router{Select Provider}
+
+    Router -->|OpenAI| OpenAI[OpenAI API]
+    Router -->|Anthropic| Anthropic[Anthropic API]
+    Router -->|Google| Google[Google API]
+    Router -->|Other| Other[Other Providers]
 
     OpenAI -->|Response| LiteLLM
     Anthropic -->|Response| LiteLLM
     Google -->|Response| LiteLLM
     Other -->|Response| LiteLLM
 
-    LiteLLM -->|Usage Tracking| Database
+    LiteLLM -->|Usage Tracking| DB[(🗄️ PostgreSQL)]
     LiteLLM -->|Response| Agent
 
-    Agent -->|Process Response| Logfire[📊 Logfire Observability]
-    Logfire -->|Logs & Metrics| Monitoring[📈 Monitoring Dashboard]
-
-    Agent -->|Final Response| FastAPI
-    FastAPI -->|JSON Response| User
-
-    style User fill:#e1f5ff
-    style FastAPI fill:#4CAF50
     style Agent fill:#FF9800
     style LiteLLM fill:#2196F3
-    style LLMProvider fill:#9C27B0
-    style Database fill:#607D8B
-    style RedisCache fill:#F44336
-    style Logfire fill:#FFC107
+    style Router fill:#9C27B0
+    style OpenAI fill:#10A37F
+    style Anthropic fill:#D4A574
+    style Google fill:#4285F4
+    style DB fill:#607D8B
 ```
 
-### Request Flow Explanation
+**What happens here:**
+- Agent sends the request to LiteLLM Proxy
+- LiteLLM routes to the configured provider
+- Handles load balancing and failover
+- Tracks usage and costs in PostgreSQL
+- Returns the LLM response to the agent
+</details>
 
-1. **User Request** → A client sends an HTTP request to the FastAPI application endpoint.
+<details>
+<summary><b>📤 Part 4: Response Flow & Observability</b> (Click to expand)</summary>
 
-2. **FastAPI Application** → Receives the request and applies middleware layers:
-   - **Security Middleware**: Implements rate limiting, blocks malicious user agents, and provides CORS protection
-   - **Session Middleware**: Manages user sessions securely
-   - **Redis Cache**: Used for rate limiting and session storage
+```mermaid
+graph TB
+    Agent[🤖 Pydantic AI Agent] -->|Process Response| Logfire[📊 Logfire]
 
-3. **Authentication/Authorization** → Validates the user's JWT token:
-   - If valid: Proceeds to the agent
-   - If invalid: Returns `401 Unauthorized`
+    Logfire -->|Logs & Metrics| Monitoring[📈 Monitoring Dashboard]
+    Logfire -->|Traces| Tracing[🔍 Request Tracing]
 
-4. **Pydantic AI Agent** → The core agent that processes user requests:
-   - Retrieves prompts from the Prompt Service
-   - Configures the LLM model via LiteLLM
-   - Handles conversation context and state
+    Agent -->|Final Response| FastAPI[🚀 FastAPI]
+    FastAPI -->|JSON Response| User[👤 User]
 
-5. **Prompt Service** → Manages prompt loading and caching:
-   - **Cache Check**: First checks Redis for cached prompts (fast retrieval)
-   - **Database Fallback**: If cache miss, loads from PostgreSQL
-   - **Cache Update**: Stores loaded prompts in Redis for future requests
-   - **Version Control**: Uses active prompt versions managed via the admin panel
+    style Agent fill:#FF9800
+    style Logfire fill:#FFC107
+    style Monitoring fill:#4CAF50
+    style Tracing fill:#2196F3
+    style FastAPI fill:#4CAF50
+    style User fill:#e1f5ff
+```
 
-6. **LiteLLM Proxy** → Acts as a unified interface to multiple LLM providers:
-   - Routes requests to the configured provider
-   - Handles load balancing and failover
-   - Tracks usage and costs per deployment
-   - Manages API keys and rate limits
-
-7. **Main LLM Provider** → The actual LLM service (OpenAI, Anthropic, Google, etc.):
-   - Processes the prompt and generates a response
-   - Returns the completion to LiteLLM
-
-8. **Response Flow** → The response flows back through the system:
-   - LiteLLM tracks usage metrics in PostgreSQL
-   - Agent processes and structures the response
-   - Logfire captures observability data (logs, traces, metrics)
-   - FastAPI returns the final JSON response to the user
+**What happens here:**
+- Agent processes and structures the LLM response
+- Logfire captures logs, metrics, and traces
+- Response flows back through FastAPI
+- User receives the final JSON response
+- All metrics available in monitoring dashboard
+</details>
 
 ### Key Components
 
