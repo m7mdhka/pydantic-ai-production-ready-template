@@ -2,6 +2,113 @@
 
 A production-ready template for building applications with Pydantic AI, FastAPI, and modern Python tooling.
 
+## Architecture Overview
+
+The application follows a layered architecture where user requests flow through multiple services before reaching the LLM provider. Below is a detailed diagram showing how a request is processed:
+
+```mermaid
+graph TB
+    User[👤 User Request] -->|HTTP Request| FastAPI[🚀 FastAPI Application]
+
+    FastAPI --> Security[🛡️ Security Middleware]
+    Security -->|Rate Limiting| RedisCache[💾 Redis Cache]
+    Security -->|Session Management| Session[📝 Session Middleware]
+
+    Session --> Auth[🔐 Authentication/Authorization]
+    Auth -->|Valid Token| Agent[🤖 Pydantic AI Agent]
+    Auth -->|Invalid| Error1[❌ 401 Unauthorized]
+
+    Agent --> PromptService[📋 Prompt Service]
+    PromptService -->|Check Cache| RedisCache
+    RedisCache -->|Cache Hit| PromptCache[✅ Cached Prompt]
+    RedisCache -->|Cache Miss| Database[(🗄️ PostgreSQL Database)]
+
+    Database -->|Load Prompt| PromptDB[📝 Prompt Content]
+    PromptDB -->|Store in Cache| RedisCache
+    PromptDB --> PromptCache
+
+    PromptCache --> Agent
+    Agent -->|Configured with Model| LiteLLM[🔀 LiteLLM Proxy]
+
+    LiteLLM -->|Route Request| LLMProvider[🤖 Main LLM Provider]
+    LLMProvider -->|OpenAI| OpenAI[OpenAI API]
+    LLMProvider -->|Anthropic| Anthropic[Anthropic API]
+    LLMProvider -->|Google| Google[Google API]
+    LLMProvider -->|Other| Other[Other Providers]
+
+    OpenAI -->|Response| LiteLLM
+    Anthropic -->|Response| LiteLLM
+    Google -->|Response| LiteLLM
+    Other -->|Response| LiteLLM
+
+    LiteLLM -->|Usage Tracking| Database
+    LiteLLM -->|Response| Agent
+
+    Agent -->|Process Response| Logfire[📊 Logfire Observability]
+    Logfire -->|Logs & Metrics| Monitoring[📈 Monitoring Dashboard]
+
+    Agent -->|Final Response| FastAPI
+    FastAPI -->|JSON Response| User
+
+    style User fill:#e1f5ff
+    style FastAPI fill:#4CAF50
+    style Agent fill:#FF9800
+    style LiteLLM fill:#2196F3
+    style LLMProvider fill:#9C27B0
+    style Database fill:#607D8B
+    style RedisCache fill:#F44336
+    style Logfire fill:#FFC107
+```
+
+### Request Flow Explanation
+
+1. **User Request** → A client sends an HTTP request to the FastAPI application endpoint.
+
+2. **FastAPI Application** → Receives the request and applies middleware layers:
+   - **Security Middleware**: Implements rate limiting, blocks malicious user agents, and provides CORS protection
+   - **Session Middleware**: Manages user sessions securely
+   - **Redis Cache**: Used for rate limiting and session storage
+
+3. **Authentication/Authorization** → Validates the user's JWT token:
+   - If valid: Proceeds to the agent
+   - If invalid: Returns `401 Unauthorized`
+
+4. **Pydantic AI Agent** → The core agent that processes user requests:
+   - Retrieves prompts from the Prompt Service
+   - Configures the LLM model via LiteLLM
+   - Handles conversation context and state
+
+5. **Prompt Service** → Manages prompt loading and caching:
+   - **Cache Check**: First checks Redis for cached prompts (fast retrieval)
+   - **Database Fallback**: If cache miss, loads from PostgreSQL
+   - **Cache Update**: Stores loaded prompts in Redis for future requests
+   - **Version Control**: Uses active prompt versions managed via the admin panel
+
+6. **LiteLLM Proxy** → Acts as a unified interface to multiple LLM providers:
+   - Routes requests to the configured provider
+   - Handles load balancing and failover
+   - Tracks usage and costs per deployment
+   - Manages API keys and rate limits
+
+7. **Main LLM Provider** → The actual LLM service (OpenAI, Anthropic, Google, etc.):
+   - Processes the prompt and generates a response
+   - Returns the completion to LiteLLM
+
+8. **Response Flow** → The response flows back through the system:
+   - LiteLLM tracks usage metrics in PostgreSQL
+   - Agent processes and structures the response
+   - Logfire captures observability data (logs, traces, metrics)
+   - FastAPI returns the final JSON response to the user
+
+### Key Components
+
+- **FastAPI**: Modern, fast web framework for building APIs
+- **Pydantic AI Agent**: Intelligent agent framework for LLM interactions
+- **LiteLLM Proxy**: Unified interface for managing multiple LLM providers
+- **PostgreSQL**: Stores prompts, versions, user data, and usage metrics
+- **Redis**: Provides caching for prompts and session management
+- **Logfire**: Observability platform for monitoring and debugging
+
 ## Requirements
 
 - Python >= 3.13
