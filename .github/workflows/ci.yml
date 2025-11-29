@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Run tests
+        run: uv run nox -s test -- --junitxml junit.xml
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: junit.xml
