@@ -67,7 +67,7 @@ async def login(
 ) -> Token:
     """Login a user."""
     user_service = UserService(db)
-    user = await user_service.authenticate_user(user_data.email, user_data.password)
+    user = await user_service.verify_user_password(user_data.email, user_data.password)
     if not user:
         raise HTTPException(
             status_code=401,

@@ -11,6 +11,7 @@ from loguru import logger
 from starlette.middleware.sessions import SessionMiddleware
 
 from src.admin import admin
+from src.api import router
 from src.core.config import PROJECT_INFO, settings
 
 
@@ -61,5 +62,6 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=settings.jwt_secret_key.get_secret_value(),
 )
+app.include_router(router)
 admin.mount_to(app)
 app.add_middleware(SecurityMiddleware, config=config)
