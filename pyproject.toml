@@ -3,7 +3,7 @@ name = "pydantic-ai-production-ready-template"
 version = "0.1.0"
 description = "Pydantic AI Production Ready Template"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "pydantic-ai>=1.13.0",
     "fastapi>=0.121.1",

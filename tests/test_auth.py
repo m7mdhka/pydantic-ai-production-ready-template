@@ -1,15 +1,11 @@
 """Tests for authentication endpoints."""
 
-import uuid
-from typing import Any
-
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import hash_password
 from src.models.user import User
-from src.schemas.user import UserCreate
 
 
 @pytest.mark.asyncio
@@ -110,7 +106,7 @@ async def test_login_success(
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
-    assert data["token_type"] == "bearer"
+    assert data["token_type"] == "Bearer"
     assert isinstance(data["access_token"], str)
     assert len(data["access_token"]) > 0
 
@@ -199,7 +195,7 @@ async def test_validate_token_missing_header(client: AsyncClient) -> None:
     """Test token validation without authorization header fails."""
     response = await client.get("/v1/auth/validate-token")
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -260,7 +256,7 @@ async def test_get_current_user_missing_token(client: AsyncClient) -> None:
     """Test getting current user without token fails."""
     response = await client.get("/v1/auth/users/me")
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio

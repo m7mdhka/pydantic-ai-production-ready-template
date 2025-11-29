@@ -9,7 +9,7 @@ from jose import jwt
 from src.core.config import settings
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token", scheme_name="Bearer")
 
 
 def hash_password(password: str) -> str:
@@ -44,7 +44,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     )
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    data: dict,
+    expires_delta: timedelta | None = None,
+) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
     if expires_delta:

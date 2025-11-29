@@ -1,18 +1,26 @@
 """Auth API."""
 
-from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.config import settings
-from src.core.security import create_access_token, oauth2_scheme
+from src.core.security import oauth2_scheme
 from src.database.database import get_async_session
 from src.models.user import User
-from src.schemas.user import Token, UserCreate, UserLogin, UserResponse
-from src.services.user_service import UserService
+from src.schemas.user import (
+    Token,
+    TokenValidationResponse,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+)
+from src.services.auth_service import (
+    AuthService,
+    InvalidCredentialsError,
+    TokenValidationError,
+)
+from src.services.user_service import UserAlreadyExistsError
 
 
 router = APIRouter()
@@ -29,22 +37,10 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret_key.get_secret_value(),
-            algorithms=[settings.jwt_algorithm],
-        )
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception from None
-    except JWTError as e:
+        auth_service = AuthService(db)
+        return await auth_service.get_user_from_token(token)
+    except TokenValidationError as e:
         raise credentials_exception from e
-
-    user_service = UserService(db)
-    user = await user_service.get_user_by_email(email)
-    if user is None:
-        raise credentials_exception
-    return user
 
 
 @router.post("/register", response_model=UserResponse)
@@ -54,9 +50,9 @@ async def register(
 ) -> User:
     """Register a new user."""
     try:
-        user_service = UserService(db)
-        return await user_service.create_user(user_data)
-    except ValueError as e:
+        auth_service = AuthService(db)
+        return await auth_service.register_user(user_data)
+    except UserAlreadyExistsError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
@@ -66,34 +62,28 @@ async def login(
     db: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> Token:
     """Login a user."""
-    user_service = UserService(db)
-    user = await user_service.verify_user_password(user_data.email, user_data.password)
-    if not user:
+    try:
+        auth_service = AuthService(db)
+        return await auth_service.login(user_data)
+    except InvalidCredentialsError as e:
         raise HTTPException(
             status_code=401,
-            detail="Incorrect email or password",
+            detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-    access_token = create_access_token(
-        data={"sub": user.email},
-        expires_delta=access_token_expires,
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+        ) from e
 
 
-@router.get("/validate-token")
+@router.get("/validate-token", response_model=TokenValidationResponse)
 async def validate_token(
     current_user: Annotated[User, Depends(get_current_user)],
-) -> dict[str, bool | str]:
+) -> TokenValidationResponse:
     """Validate token."""
-    return {"valid": True, "user_id": current_user.id}
+    return TokenValidationResponse(valid=True, user_id=str(current_user.id))
 
 
-@router.get("/users/me")
+@router.get("/users/me", response_model=UserResponse)
 async def get_current_user_info(
     current_user: Annotated[User, Depends(get_current_user)],
-) -> UserResponse:
+) -> User:
     """Get current user information."""
-    return UserResponse.model_validate(current_user)
+    return current_user

@@ -156,5 +156,5 @@ def test_user_login():
 
 
 def test_token_schema():
-    token = Token(access_token="abc", token_type="bearer")
+    token = Token(access_token="abc", token_type="Bearer")
     assert token.access_token == "abc"

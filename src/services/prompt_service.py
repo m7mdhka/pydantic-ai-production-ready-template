@@ -1,6 +1,7 @@
 """Prompt service."""
 
 import uuid
+from typing import cast
 
 from redis.asyncio import Redis
 from sqlalchemy import func, select, update
@@ -8,6 +9,14 @@ from sqlalchemy.orm import selectinload
 
 from src.database.database import AsyncSession
 from src.models.prompt import Prompt, PromptVersion
+
+
+class PromptServiceError(Exception):
+    """Prompt service error."""
+
+
+class PromptNotFoundError(PromptServiceError):
+    """Prompt not found error."""
 
 
 class PromptService:
@@ -23,24 +32,31 @@ class PromptService:
     def _get_cache_key(self, slug: str) -> str:
         return f"{self.cache_prefix}{slug}"
 
-    async def get_cached_content(self, slug: str) -> str | None:
+    @staticmethod
+    async def get_cached_content(
+        session: AsyncSession,
+        redis: Redis,
+        slug: str,
+        cache_prefix: str = "prompt_cache:",
+        cache_ttl: int = 3600,
+    ) -> str:
         """Get cached content for a prompt."""
-        key = self._get_cache_key(slug)
+        key = f"{cache_prefix}{slug}"
 
-        cached_val = await self.redis.get(key)
+        cached_val = await redis.get(key)
         if cached_val:
-            return cached_val.decode("utf-8")
+            return cast("bytes", cached_val).decode("utf-8")
 
-        result = await self.session.execute(
+        result = await session.execute(
             select(Prompt).where(Prompt.slug == slug),
         )
         prompt = result.scalar_one_or_none()
 
         if prompt and prompt.content:
-            await self.redis.set(key, prompt.content, ex=self.cache_ttl)
+            await redis.set(key, prompt.content, ex=cache_ttl)
             return prompt.content
 
-        return None
+        raise PromptNotFoundError(f"Prompt not found: {slug}") from None
 
     async def invalidate_cache(self, slug: str) -> None:
         """Invalidate the cache for a prompt."""

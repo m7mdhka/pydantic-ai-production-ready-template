@@ -19,7 +19,9 @@ async def test_health_check_success(client_no_db: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_health_check_response_structure(client_no_db: AsyncClient) -> None:
+async def test_health_check_response_structure(
+    client_no_db: AsyncClient,
+) -> None:
     """Test health check response has correct structure."""
     response = await client_no_db.get("/v1/health/")
 
@@ -72,7 +74,9 @@ async def test_health_check_version_format(client_no_db: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_health_check_multiple_requests(client_no_db: AsyncClient) -> None:
+async def test_health_check_multiple_requests(
+    client_no_db: AsyncClient,
+) -> None:
     """Test health check endpoint can handle multiple requests."""
     # Make multiple requests
     for _ in range(5):
@@ -83,7 +87,9 @@ async def test_health_check_multiple_requests(client_no_db: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
-async def test_health_check_method_not_allowed(client_no_db: AsyncClient) -> None:
+async def test_health_check_method_not_allowed(
+    client_no_db: AsyncClient,
+) -> None:
     """Test health check endpoint only accepts GET requests."""
     # Try POST request
     response = await client_no_db.post("/v1/health/")

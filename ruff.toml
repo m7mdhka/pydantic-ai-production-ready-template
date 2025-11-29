@@ -51,7 +51,9 @@ ignore = [
     "RUF012",
     "PLR0913",
     "PLR2004",
+    "D401",
     "FBT001",
+    "EM101",
 ]
 
 fixable = ["ALL"]
@@ -76,4 +78,4 @@ lines-after-imports = 2
 "tests_*.py" = ["S101"]
 "*/tests/*" = ["S101"]
 "conftest.py" = ["S101"]
-"__init__.py" = ["F401", "F403"]
+"__init__.py" = ["F401", "F403", "D104"]

@@ -4,9 +4,18 @@ import uuid
 from enum import Enum
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, Text, text
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Text,
+)
+from sqlalchemy import (
+    Enum as SQLEnum,
+)
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -36,7 +45,7 @@ class Message(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        default=uuid.uuid4,
     )
 
     thread_id: Mapped[uuid.UUID] = mapped_column(
@@ -57,17 +66,15 @@ class Message(Base):
     )
 
     parts: Mapped[list[Any]] = mapped_column(
-        JSONB,
+        JSON,
         nullable=False,
         default=list,
-        server_default=text("'[]'::jsonb"),
     )
 
     extra_data: Mapped[dict[str, Any] | None] = mapped_column(
-        JSONB,
+        JSON,
         nullable=True,
         default=None,
-        server_default=text("'{}'::jsonb"),
     )
 
     created_at: Mapped[DateTime] = mapped_column(

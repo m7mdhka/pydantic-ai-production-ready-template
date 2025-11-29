@@ -4,7 +4,14 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, SecretStr
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    SecretStr,
+)
 
 
 MIN_PASSWORD_LENGTH = 8
@@ -114,3 +121,13 @@ class Token(BaseModel):
 
     access_token: str = Field(..., description="Access token")
     token_type: str = Field(..., description="Token type")
+
+
+class TokenValidationResponse(BaseModel):
+    """Schema for token validation response."""
+
+    valid: bool = Field(..., description="Whether the token is valid")
+    user_id: str = Field(
+        ...,
+        description="The user ID associated with the token",
+    )

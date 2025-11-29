@@ -3,6 +3,7 @@
 from src.schemas.extras import HealthCheck
 from src.schemas.user import (
     Token,
+    TokenValidationResponse,
     UserBase,
     UserCreate,
     UserListResponse,
@@ -15,6 +16,7 @@ from src.schemas.user import (
 __all__ = [
     "HealthCheck",
     "Token",
+    "TokenValidationResponse",
     "UserBase",
     "UserCreate",
     "UserListResponse",

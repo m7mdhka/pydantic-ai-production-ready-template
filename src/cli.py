@@ -60,7 +60,9 @@ def createsuperuser(
     """Create a superuser account with an interactive, beautiful UI."""
     console.print(
         Panel(
-            Align.center("[bold white]Admin User Creation Wizard[/bold white] 🧙‍♂️"),
+            Align.center(
+                "[bold white]Admin User Creation Wizard[/bold white] 🧙‍♂️",
+            ),
             box=box.ROUNDED,
             style="bold blue",
             subtitle="Secure System Access",
@@ -101,8 +103,8 @@ async def _create_superuser(email: str, name: str, password: str) -> None:
     except ValidationError as e:
         console.print("\n[danger]Validation Failed:[/danger]")
         for error in e.errors():
-            loc = error.get("loc", [])
-            field = " -> ".join(str(l) for l in loc)
+            location: list[str] = error.get("loc", [])
+            field = " -> ".join(str(segment) for segment in location)
             msg = error.get("msg", "Unknown error")
             console.print(f"  ❌ [bold]{field}[/]: {msg}")
         raise typer.Exit(1) from e

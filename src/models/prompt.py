@@ -33,7 +33,7 @@ class Prompt(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        default=uuid.uuid4,
     )
 
     slug: Mapped[str] = mapped_column(
@@ -79,7 +79,7 @@ class PromptVersion(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        default=uuid.uuid4,
     )
 
     prompt_id: Mapped[uuid.UUID] = mapped_column(

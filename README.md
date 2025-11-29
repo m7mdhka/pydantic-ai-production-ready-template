@@ -276,7 +276,7 @@ make pre-commit-run      # Run pre-commit hooks on all files
 
 ### Commitizen - Conventional Commits
 
-This project uses [Commitizen](https://commitizen-tools.github.io/commitizen/) to ensure consistent and semantic commit messages following the [Conventional Commits](https://www.conventionalcommits.org/) standard.
+This project uses [Commitizen](https://commitizen-tools.github.io/commitizen/) ([GitHub](https://github.com/commitizen-tools/commitizen)) to ensure consistent and semantic commit messages following the [Conventional Commits](https://www.conventionalcommits.org/) standard.
 
 #### Using `cz commit`
 
@@ -286,14 +286,14 @@ Instead of using `git commit`, use Commitizen's interactive CLI:
 uv run cz commit
 ```
 
-This will guide you through creating a properly formatted commit message with:
+This will guide you through creating a properly formatted commit message with the following prompts:
 
-1. **Type**: Select the type of change (feat, fix, docs, style, refactor, test, chore, etc.)
-2. **Scope** (optional): Specify the area of the codebase affected
-3. **Subject**: Short description of the change
-4. **Body** (optional): Longer description providing context
-5. **Breaking changes** (optional): Describe any breaking changes
-6. **Footer** (optional): Reference issues, PRs, etc.
+1. **Type**: Select the type of change you are committing (e.g., `fix: A bug fix. Correlates with PATCH in SemVer`)
+2. **Scope** (optional): What is the scope of this change? (class or file name) - Press Enter to skip
+3. **Subject**: Write a short and imperative summary of the code changes (lower case and no period)
+4. **Body** (optional): Provide additional contextual information about the code changes - Press Enter to skip
+5. **Breaking Change**: Is this a BREAKING CHANGE? Correlates with MAJOR in SemVer (Yes/No)
+6. **Footer** (optional): Information about Breaking Changes and reference issues that this commit closes - Press Enter to skip
 
 #### Example Commit Flow
 
@@ -304,13 +304,19 @@ git add .
 # Use Commitizen to create a commit
 uv run cz commit
 
-# Example output:
+# Example interactive prompts:
 # ? Select the type of change you are committing: feat
-# ? What is the scope of this change? (optional): api
-# ? Write a short and imperative summary: add user authentication endpoint
-# ? Provide additional contextual information: (optional)
-# ? Is this a BREAKING CHANGE? No
-# ? Footer: (optional)
+#   feat: A new feature. Correlates with MINOR in SemVer
+# ? What is the scope of this change? (class or file name): (press [enter] to skip)
+#   api
+# ? Write a short and imperative summary of the code changes: (lower case and no period)
+#   add user authentication endpoint
+# ? Provide additional contextual information about the code changes: (press [enter] to skip)
+#   [Enter]
+# ? Is this a BREAKING CHANGE? Correlates with MAJOR in SemVer
+#   No
+# ? Footer. Information about Breaking Changes and reference issues that this commit closes: (press [enter] to skip)
+#   [Enter]
 
 # Result: feat(api): add user authentication endpoint
 ```
@@ -354,6 +360,13 @@ test(api): add integration tests for health endpoint
 - ✅ Enables semantic versioning and automatic changelog generation
 - ✅ Improves collaboration through clear commit history
 - ✅ Enforced by pre-commit hooks (commit-msg stage)
+
+#### Learn More
+
+For more information about Commitizen, visit:
+- **Documentation**: https://commitizen-tools.github.io/commitizen/
+- **GitHub Repository**: https://github.com/commitizen-tools/commitizen
+- **Conventional Commits Specification**: https://www.conventionalcommits.org/
 
 ## Available Commands
 
@@ -428,6 +441,31 @@ Securely manage environment variables and configuration settings directly from t
 Create, edit, and version control your AI prompts with commit messages and easy rollback capabilities.
 
 ![Prompt Versioning Control](assets/images/admin_panel_4.png)
+
+#### Configuring Agent Instructions with Prompt Versioning
+
+Agent instructions are stored as prompts so you can edit them from the admin panel without changing code. The default `main_agent` uses the slug `main_agent_instructions`:
+
+```python
+@main_agent.instructions
+async def main_agent_instructions(
+    ctx: RunContext[MainAgentDependencies],
+) -> str:
+    """Main agent instructions."""
+    content = await PromptService.get_cached_content(
+        session=ctx.deps.session,
+        redis=ctx.deps.redis,
+        slug="main_agent_instructions",
+    )
+    return content or ""
+```
+
+To update these instructions:
+
+1. Open the **Prompt Versioning Control** page in the admin panel.
+2. Locate or create a prompt with the slug `main_agent_instructions`.
+3. Edit the content and add a commit message.
+4. Save (and optionally activate) the new version. The agent will now use the updated instructions. Cached content is refreshed automatically when versions change.
 
 ## Grafana Monitoring
 
@@ -526,6 +564,92 @@ LITELLM_UI_PASSWORD=password                    # UI login password
 #### Model Configuration
 
 The LiteLLM configuration file is located at `./litellm/litellm.yaml`. You can edit this file to add or modify model configurations.
+
+#### Adding and Using Models
+
+##### Step 1: Add Your Model in LiteLLM
+
+You can add models to LiteLLM in two ways:
+
+**Option A: Via LiteLLM UI (Recommended)**
+
+1. Navigate to `http://localhost:4000` and log in
+2. Go to **Models** section
+3. Click **Add Model** or **Add Endpoint**
+4. Configure your model:
+   - Select the provider (OpenAI, Anthropic, Google, etc.)
+   - Enter your API key
+   - Set the model name (e.g., `gpt-4`, `claude-3-opus`, `gemini-pro`)
+   - Configure any additional settings
+5. Save the configuration
+
+**Option B: Via Configuration File**
+
+Edit `./litellm/litellm.yaml` and add your model configuration:
+
+```yaml
+model_list:
+  - model_name: gpt-4
+    litellm_params:
+      model: gpt-4
+      api_key: your-api-key-here
+  - model_name: claude-3-opus
+    litellm_params:
+      model: claude-3-opus
+      api_key: your-anthropic-key-here
+```
+
+After adding models via the config file (ONLY), restart the LiteLLM service:
+
+```bash
+make docker-dev-restart
+```
+
+##### Step 2: Use Your Model in Code
+
+Once you've added your model in LiteLLM, you can use it in your agents by updating the model name in the agent definition.
+
+For example, in `src/core/agentic_system/agents/main_agent.py`:
+
+```python
+from attr import dataclass
+from pydantic_ai import Agent, ModelSettings
+
+from src.core.agentic_system.utils import get_chat_model
+
+
+@dataclass
+class MainAgentDependencies:
+    """Main agent dependencies."""
+
+    user_name: str
+
+
+main_agent = Agent[MainAgentDependencies, str](
+    name="main_agent",
+    model=get_chat_model("your-model-name-in-litellm", ModelSettings(temperature=0.3)),
+    deps_type=MainAgentDependencies,
+)
+```
+
+**Important Notes:**
+
+- Replace `"your-model-name-in-litellm"` with the exact model name you configured in LiteLLM
+- The model name must match exactly what you set in LiteLLM (case-sensitive)
+- You can adjust `ModelSettings` parameters like `temperature`, `max_tokens`, etc.
+- The `get_chat_model()` function automatically connects to your LiteLLM proxy at the configured base URL
+
+**Example:**
+
+If you added a model named `gpt-4` in LiteLLM, your code would look like:
+
+```python
+main_agent = Agent[MainAgentDependencies, str](
+    name="main_agent",
+    model=get_chat_model("gpt-4", ModelSettings(temperature=0.3)),
+    deps_type=MainAgentDependencies,
+)
+```
 
 ### Features
 
