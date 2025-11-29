@@ -46,8 +46,10 @@ services:
       DATABASE_URL: postgresql://${DATABASE_USER:-postgres}:${DATABASE_PASSWORD:-postgres}@postgres:5432/${DATABASE_NAME:-pydantic_ai_db}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       STORE_MODEL_IN_DB: "True"
-      PROXY_ADMIN_ID: "${LITELLM_PROXY_ADMIN_ID:-admin}"
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-admin-key}
+      NO_DOCS: "True"
+      UI_USERNAME: "${LITELLM_UI_USERNAME:-admin}"
+      UI_PASSWORD: "${LITELLM_UI_PASSWORD:-password}"
 
   ollama:
     container_name: ollama
