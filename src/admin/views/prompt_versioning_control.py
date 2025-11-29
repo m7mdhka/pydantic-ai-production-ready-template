@@ -73,6 +73,7 @@ class PromptManagerView(CustomView):
             content=content,
             commit_message=commit_msg,
             is_active=True,
+            created_by_id=None,
         )
         new_version.version_number = next_ver
         session.add(new_version)
@@ -171,7 +172,11 @@ class PromptManagerView(CustomView):
             async with async_session_factory() as session:
                 try:
                     if action == "save_commit":
-                        return await self._handle_save_commit(form, session, request)
+                        return await self._handle_save_commit(
+                            form,
+                            session,
+                            request,
+                        )
                     if action == "activate_version":
                         return await self._handle_activate_version(
                             form,

@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from guard.middleware import SecurityMiddleware
 from guard.models import SecurityConfig
 from loguru import logger
+from starlette.middleware.sessions import SessionMiddleware
 
 from src.admin import admin
 from src.core.config import PROJECT_INFO, settings
@@ -56,5 +57,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(SecurityMiddleware, config=config)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.jwt_secret_key.get_secret_value(),
+)
 admin.mount_to(app)
+app.add_middleware(SecurityMiddleware, config=config)

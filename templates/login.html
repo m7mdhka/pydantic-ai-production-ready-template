@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block body %}
+    <div class="page page-center d-flex flex-column justify-content-center align-items-center min-vh-100">
+        <div class="container container-tight py-4">
+
+            <form class="card card-md border-0 shadow-lg" action="{{ request.url }}" method="POST">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4 text-primary">Login</h2>
+
+                    {% if error %}
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fa fa-exclamation-triangle me-2"></i> {{ error }}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" placeholder="user@example.com" required autofocus />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="Password" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-check">
+                            <input name="remember_me" type="checkbox" class="form-check-input" />
+                            <span class="form-check-label">Remember me</span>
+                        </label>
+                    </div>
+
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-primary w-100">Sign in</button>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+    </div>
+{% endblock %}

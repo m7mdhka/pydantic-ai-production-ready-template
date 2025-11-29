@@ -60,7 +60,7 @@ async def register(
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.post("/token")
+@router.post("/token", response_model=Token)
 async def login(
     user_data: UserLogin,
     db: Annotated[AsyncSession, Depends(get_async_session)],

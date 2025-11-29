@@ -22,14 +22,15 @@ class User(Base):
         server_default=text("gen_random_uuid()"),
         init=False,
     )
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     email: Mapped[str] = mapped_column(
         String(255),
         unique=True,
         index=True,
         nullable=False,
+        default="",
     )
-    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False, default="")
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -64,7 +65,7 @@ class User(Base):
         init=False,
     )
 
-    threads = relationship(
+    user_threads = relationship(
         "Thread",
         back_populates="owner",
         cascade="all, delete-orphan",

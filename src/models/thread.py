@@ -47,7 +47,7 @@ class Thread(Base):
         nullable=False,
     )
 
-    owner = relationship("User", back_populates="threads")
+    owner = relationship("User", back_populates="user_threads")
 
     messages = relationship(
         "Message",

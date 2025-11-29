@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% import "macros/views.html" as macros with context %}
+
+{% if (not _is_login_path ) and is_auth_enabled %}
+    {% set current_user = (request | get_admin_user) %}
+    {% set config = (request | get_admin_config) %}
+    {% set logo_url = config.logo_url if config and config.logo_url else logo_url %}
+    {% set app_title = config.app_title if config and config.app_title else app_title %}
+{% endif %}
+
+{% block body %}
+    <div class="page">
+        {% block sidebar %}
+            <!-- SIDEBAR STYLES -->
+            <style>
+                .navbar-vertical {
+                    background: var(--tblr-bg-surface) !important;
+                    border-right: 1px solid var(--tblr-border-color);
+                }
+                .navbar-brand-autodark {
+                    padding: 1.5rem 1rem;
+                    border-bottom: 1px solid var(--tblr-border-color);
+                    margin-bottom: 1rem;
+                }
+                .navbar-nav .nav-item {
+                    margin-bottom: 4px;
+                    padding: 0 10px;
+                }
+                .navbar-nav .nav-link {
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    overflow: hidden;
+                    color: #94a3b8;
+                    font-weight: 500;
+                    display: flex;
+                    align-items: center;
+                }
+                .navbar-nav .nav-link i,
+                .navbar-nav .nav-link svg,
+                .navbar-nav .nav-link .nav-link-icon {
+                    color: #64748b;
+                    transition: transform 0.2s ease, color 0.2s ease;
+                    margin-right: 12px;
+                    font-size: 1.1rem;
+                    width: 20px;
+                    text-align: center;
+                }
+                .navbar-nav .nav-link:hover {
+                    background-color: rgba(255, 255, 255, 0.04);
+                    color: #f1f5f9;
+                    transform: translateX(4px);
+                }
+                .navbar-nav .nav-link:hover i,
+                .navbar-nav .nav-link:hover svg {
+                    color: #fff;
+                    transform: scale(1.1);
+                }
+                .navbar-nav .nav-item.active .nav-link,
+                .navbar-nav .nav-link.active {
+                    background: linear-gradient(90deg, var(--tblr-primary), var(--tblr-primary-darken)) !important;
+                    color: #ffffff !important;
+                    box-shadow: 0 4px 12px rgba(var(--tblr-primary-rgb), 0.3);
+                    transform: translateX(0);
+                }
+                .navbar-nav .nav-link.active i,
+                .navbar-nav .nav-link.active svg {
+                    color: #ffffff !important;
+                }
+                .dropdown-menu.show {
+                    background: #1e293b;
+                    border: 1px solid var(--tblr-border-color);
+                    margin-left: 10px;
+                }
+                .dropdown-item {
+                    color: #94a3b8;
+                    border-radius: 4px;
+                }
+                .dropdown-item.active, .dropdown-item:active {
+                    background-color: var(--tblr-primary);
+                    color: #fff;
+                }
+                .navbar-footer {
+                    margin-top: auto;
+                    padding: 1rem;
+                    border-top: 1px solid var(--tblr-border-color);
+                    background: rgba(0,0,0,0.1);
+                }
+                .user-card {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    text-decoration: none;
+                    color: inherit;
+                    padding: 8px;
+                    border-radius: 8px;
+                    transition: background 0.2s;
+                }
+                .user-card:hover {
+                    background: rgba(255,255,255,0.05);
+                }
+            </style>
+
+            <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+                <div class="container-fluid h-100 d-flex flex-column">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <h1 class="navbar-brand navbar-brand-autodark m-0">
+                        <a class="brand-link text-decoration-none" href="{{ url_for(__name__ ~ ':index') }}">
+                            {% if logo_url %}
+                                <img src="{{ logo_url }}" class="navbar-logo" style="height: 28px;" alt="Logo"/>
+                            {% else %}
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="bg-primary text-white p-1 rounded-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5" /><path d="M12 12l8 -4.5" /><path d="M12 12l0 9" /><path d="M12 12l-8 -4.5" /></svg>
+                                    </span>
+                                    {{ app_title }}
+                                </span>
+                            {% endif %}
+                        </a>
+                    </h1>
+
+                    <div class="collapse navbar-collapse flex-grow-1" id="sidebar-menu">
+                        <ul class="navbar-nav pt-lg-3">
+                            {% for view in views if view.is_accessible(request) %}
+
+                                {# 1. EXTERNAL LINKS #}
+                                {% if (view | is_link) %}
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{{ view.url }}" target="{{ view.target }}">
+                                            <span class="nav-link-icon">
+                                                {% if view.icon %}<i class="{{ view.icon }}"></i>{% else %}<i class="fa fa-link"></i>{% endif %}
+                                            </span>
+                                            <span class="nav-link-title">{{ view.label }}</span>
+                                        </a>
+                                    </li>
+
+                                {# 2. CUSTOM VIEWS #}
+                                {% elif (view | is_custom_view) and view.add_to_menu %}
+                                    {# Calculate the FULL URL and check against request.url.path #}
+                                    {% set view_url = request.url_for(__name__ ~ ':' ~ view.name) %}
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.url.path == view_url.path %}active{% endif %}"
+                                           href="{{ view_url }}">
+                                            <span class="nav-link-icon">
+                                                {% if view.icon %}<i class="{{ view.icon }}"></i>{% else %}<i class="fa fa-file"></i>{% endif %}
+                                            </span>
+                                            <span class="nav-link-title">{{ view.label }}</span>
+                                        </a>
+                                    </li>
+
+                                {# 3. MODEL VIEWS #}
+                                {% elif (view | is_model) %}
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if view.is_active(request) %}active{% endif %}"
+                                           href="{{ request.url_for(__name__ ~ ':list', identity=view.identity) }}">
+                                            <span class="nav-link-icon">
+                                                 {% if view.icon %}<i class="{{ view.icon }}"></i>{% else %}<i class="fa fa-database"></i>{% endif %}
+                                            </span>
+                                            <span class="nav-link-title">{{ view.label }}</span>
+                                        </a>
+                                    </li>
+
+                                {# 4. DROPDOWNS #}
+                                {% elif (view | is_dropdown) %}
+                                    {#
+                                       We need to pre-calculate if the dropdown should be open (active).
+                                       We check all children. If ANY child is active, the parent is active.
+                                    #}
+                                    {% set ns = namespace(is_open=False) %}
+                                    {% for sub in view.views %}
+                                        {% if (sub | is_custom_view) %}
+                                             {# FIX: Check custom views URL path #}
+                                             {% if request.url.path == request.url_for(__name__ ~ ':' ~ sub.name).path %}
+                                                {% set ns.is_open = True %}
+                                             {% endif %}
+                                        {% elif (sub | is_model) and sub.is_active(request) %}
+                                             {% set ns.is_open = True %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link dropdown-toggle {% if ns.is_open %}active{% endif %}"
+                                           href="#navbar-{{ loop.index }}"
+                                           data-bs-toggle="dropdown"
+                                           data-bs-auto-close="false"
+                                           role="button"
+                                           aria-expanded="{{ ns.is_open }}">
+                                            <span class="nav-link-icon">
+                                                {% if view.icon %}<i class="{{ view.icon }}"></i>{% else %}<i class="fa fa-folder"></i>{% endif %}
+                                            </span>
+                                            <span class="nav-link-title">{{ view.label }}</span>
+                                        </a>
+                                        <div class="dropdown-menu {% if ns.is_open %}show{% endif %}">
+                                            {% for subview in view.views if subview.is_accessible(request) %}
+                                                {% if (subview | is_link) %}
+                                                    <a class="dropdown-item" href="{{ subview.url }}" target="{{ subview.target }}">
+                                                        {{ subview.label }}
+                                                    </a>
+                                                {% elif (subview | is_model) %}
+                                                    <a class="dropdown-item {% if subview.is_active(request) %}active{% endif %}"
+                                                       href="{{ request.url_for(__name__ ~ ':list', identity=subview.identity) }}">
+                                                        {{ subview.label }}
+                                                    </a>
+                                                {% elif (subview | is_custom_view) %}
+                                                    {# FIX: Apply URL match to Dropdown Custom Items #}
+                                                    {% set sub_url = request.url_for(__name__ ~ ':' ~ subview.name) %}
+                                                    <a class="dropdown-item {% if request.url.path == sub_url.path %}active{% endif %}"
+                                                       href="{{ sub_url }}">
+                                                        {{ subview.label }}
+                                                    </a>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    {% if current_user %}
+                    <div class="navbar-footer d-none d-lg-block">
+                        <div class="dropdown">
+                            <a href="#" class="user-card" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="avatar avatar-sm rounded"
+                                    {% if current_user.photo_url %}style="background-image: url({{ current_user.photo_url }})"{% endif %}>
+                                    {% if not current_user.photo_url %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="7" r="4"></circle><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"></path></svg>
+                                    {% endif %}
+                                </span>
+                                <div class="d-flex flex-column text-truncate">
+                                    <span class="fw-bold text-white" style="font-size: 0.9rem;">{{ current_user.username }}</span>
+                                    <span class="small text-muted">Admin</span>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon ms-auto text-muted" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><polyline points="8 9 12 5 16 9" /><polyline points="8 15 12 19 16 15" /></svg>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow bg-dark border-secondary">
+                                <a href="{{ request.url_for(__name__ ~ ':logout') }}" class="dropdown-item text-white hover-primary">
+                                    <i class="fa fa-sign-out me-2"></i> {{ _("Logout") }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if is_auth_enabled and current_user %}
+                         <div class="d-lg-none mt-2 pb-3 px-3">
+                            <a href="{{ request.url_for(__name__ ~ ':logout') }}" class="btn btn-outline-danger w-100">
+                                {{ _("Logout") }}
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </aside>
+        {% endblock %}
+
+        <div class="page-wrapper">
+            <div class="container-fluid">
+                <div class="page-header d-print-none">
+                    {% block header %}{% endblock %}
+                </div>
+            </div>
+            <div class="page-body flex-grow-1">
+                <div class="container-fluid">
+                    <div class="row row-deck row-cards">
+                        {% block content %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

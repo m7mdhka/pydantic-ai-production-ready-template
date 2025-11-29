@@ -1,0 +1,37 @@
+# Cursor ignore file
+# Files and directories listed here will be ignored by Cursor's indexing
+
+# Alembic migrations (auto-generated)
+alembic/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Test coverage
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log

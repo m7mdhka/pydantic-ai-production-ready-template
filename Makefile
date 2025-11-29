@@ -1,4 +1,4 @@
-.PHONY: help install install-dev run run-dev format lint lint-fix test test-cov clean docker-up docker-down docker-logs docker-dev-up docker-dev-down docker-dev-logs docker-dev-restart migration-create migration-upgrade migration-downgrade migration-current migration-history pre-commit-install pre-commit-run all
+.PHONY: help install install-dev run run-dev format lint lint-fix test test-cov clean docker-up docker-down docker-logs docker-dev-up docker-dev-down docker-dev-logs docker-dev-restart migration-create migration-upgrade migration-downgrade migration-current migration-history pre-commit-install pre-commit-run createsuperuser
 
 # Default target
 .DEFAULT_GOAL := help
@@ -25,7 +25,7 @@ run: ## Run the application in production mode
 	uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
 
 run-dev: ## Run the application in development mode with auto-reload
-	ENVIRONMENT=development uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+	ENVIRONMENT=development uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir src
 
 format: ## Format code using Ruff
 	env -u FORCE_COLOR uv run nox -s fmt
@@ -84,3 +84,6 @@ pre-commit-install: ## Install pre-commit hooks
 
 pre-commit-run: ## Run pre-commit hooks on all files
 	uv run pre-commit run --all-files
+
+createsuperuser: ## Create a superuser account (interactive)
+	uv run python -m src.cli createsuperuser

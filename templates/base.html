@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale() }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+    {% if favicon_url %}
+        <link rel="icon" type="image/x-icon" href="{{ favicon_url }}"/>
+    {% endif %}
+    {% block head_meta %}{% endblock %}
+    {% block title %}<title>{{ title or app_title }}</title>{% endblock %}
+
+    <!-- Tabler Core -->
+    <link rel="stylesheet" href="{{ url_for(__name__ ~ ':statics', path='css/tabler.min-1.1.0.css') }}">
+    <link rel="stylesheet" href="{{ url_for(__name__ ~ ':statics', path='css/fontawesome.min.css') }}">
+
+    <style>
+        @import url('https://rsms.me/inter/inter.css');
+
+        :root {
+            --tblr-font-sans-serif: 'Inter Var', -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+
+            /* -- EMERALD THEME OVERRIDES -- */
+            /* Replaces standard blue with Emerald */
+            --tblr-primary: #10b981;
+            --tblr-primary-rgb: 16, 185, 129;
+            --tblr-primary-fg: #ffffff;
+            --tblr-primary-darken: #059669;
+
+            /* Dark Theme Refinements */
+            --tblr-body-bg: #0f172a; /* Darker Slate */
+            --tblr-card-bg: #1e293b; /* Slate 800 */
+            --tblr-border-color: #334155;
+            --tblr-border-color-light: #334155;
+        }
+
+        body {
+            font-feature-settings: "cv03", "cv04", "cv11";
+        }
+
+        /* Enforce professional active states */
+        .btn-primary {
+            background-color: var(--tblr-primary) !important;
+            border-color: var(--tblr-primary) !important;
+        }
+        .btn-primary:hover {
+            background-color: var(--tblr-primary-darken) !important;
+            border-color: var(--tblr-primary-darken) !important;
+        }
+
+        .navbar-logo {
+            width: auto;
+            height: 2rem;
+        }
+
+        /* Scrollbar styling for dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+    {% block head_css %}{% endblock %}
+</head>
+
+<!-- Force Dark Mode Here -->
+<body data-bs-theme="dark">
+{% block body %}{% endblock %}
+{% block modal %}{% endblock %}
+
+<script type="text/javascript" src="{{ url_for(__name__ ~ ':statics', path='js/vendor/jquery.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for(__name__ ~ ':statics', path='js/vendor/js.cookie.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for(__name__ ~ ':statics', path='js/vendor/tabler.min-1.1.0.js') }}"></script>
+{% block script %}{% endblock %}
+<script>
+    $(function () {
+        $(".language-switcher-item").each(function () {
+            let el = $(this);
+            el.on("click", function () {
+                Cookies.set(String(el.data("cookie-name")), String(el.data("lang")));
+                window.location.reload();
+            });
+        });
+
+        $(".timezone-switcher-item").each(function () {
+            let el = $(this);
+            el.on("click", function () {
+                Cookies.set(String(el.data("cookie-name")), String(el.data("tz")));
+                window.location.reload();
+            });
+        });
+
+        {% if timezone_config and timezone_config.use_user_locale_timezone %}
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (!Cookies.get('timezone') && timezone) {
+            Cookies.set('timezone', timezone);
+        }
+        {% endif %}
+    });
+</script>
+</body>
+</html>
