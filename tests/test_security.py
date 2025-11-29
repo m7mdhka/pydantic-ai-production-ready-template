@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from jose import jwt
-from jwt.exceptions import ExpiredSignatureError
+from jose.exceptions import ExpiredSignatureError
 
 from src.core.config import settings
 from src.core.security import (
