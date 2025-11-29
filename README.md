@@ -186,6 +186,63 @@ Create, edit, and version control your AI prompts with commit messages and easy 
 
 ![Prompt Versioning Control](assets/images/admin_panel_4.png)
 
+## Grafana Monitoring
+
+The application includes Grafana for monitoring and observability with pre-configured dashboards for container metrics.
+
+### Accessing Grafana
+
+1. Start the Docker services (includes Grafana and Prometheus):
+   ```bash
+   make docker-dev-up
+   ```
+
+2. Navigate to `http://localhost:3000` in your browser.
+
+3. Log in using the default credentials (or your configured credentials from `.env.development`):
+   - **Username**: `admin` (or `GF_ADMIN_USER` from your env file)
+   - **Password**: `admin` (or `GF_ADMIN_PASSWORD` from your env file)
+
+### Grafana Configuration
+
+Grafana is pre-configured with:
+
+- **Prometheus Data Source**: Automatically configured to connect to the Prometheus service at `http://prometheus:9090`
+- **Container Monitoring Dashboard**: Pre-provisioned dashboard for Docker container metrics
+
+#### Environment Variables
+
+Configure Grafana in your `.env.development` or `.env.production` file:
+
+```bash
+# Grafana Configuration
+GF_ADMIN_USER=admin              # Grafana admin username
+GF_ADMIN_PASSWORD=admin          # Grafana admin password
+GF_USERS_ALLOW_SIGN_UP=false     # Disable user signup (recommended for production)
+```
+
+#### Default Port
+
+Grafana runs on port `3000` by default. You can change this by setting the `GRAFANA_PORT` environment variable in your docker-compose configuration.
+
+### Dashboard Features
+
+The pre-configured dashboard provides insights into:
+
+- Container CPU usage
+- Memory consumption
+- Network traffic
+- Disk I/O metrics
+
+![Grafana Dashboard](assets/images/grafana_dashboard.png)
+
+### Customizing Dashboards
+
+1. Log into Grafana at `http://localhost:3000`
+2. Navigate to **Dashboards** in the left sidebar
+3. You can edit existing dashboards or create new ones
+4. Custom dashboards are stored in `./grafana/provisioning/dashboards/json/` for persistence
+
 ## License
 
 [Add your license here]
