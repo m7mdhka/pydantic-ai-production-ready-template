@@ -166,25 +166,25 @@ The application includes a built-in admin panel for managing prompts, users, and
 
 ### Features
 
-#### Prompt Management
-Create, edit, and version control your AI prompts directly from the admin interface.
+#### Login Page
+Secure authentication to access the admin panel.
 
-![Prompt Editor](assets/images/admin_panel_1.png)
-
-#### Version Control
-Track changes to your prompts with commit messages and easy rollback capabilities.
-
-![Version Control](assets/images/admin_panel_2.png)
+![Login Page](assets/images/admin_panel_1.png)
 
 #### User Management
 Manage system users, roles, and permissions.
 
-![User Management](assets/images/admin_panel_3.png)
+![User Management](assets/images/admin_panel_2.png)
 
-#### Environment Variables
-Securely manage environment variables and configuration settings.
+#### Environment Settings
+Securely manage environment variables and configuration settings directly from the admin interface.
 
-![Environment Variables](assets/images/admin_panel_4.png)
+![Environment Settings](assets/images/admin_panel_3.png)
+
+#### Prompt Versioning Control
+Create, edit, and version control your AI prompts with commit messages and easy rollback capabilities.
+
+![Prompt Versioning Control](assets/images/admin_panel_4.png)
 
 ## License
 
