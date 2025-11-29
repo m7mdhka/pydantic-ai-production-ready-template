@@ -20,7 +20,6 @@ class User(Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid()"),
-        init=False,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     email: Mapped[str] = mapped_column(
@@ -36,19 +35,16 @@ class User(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
-        init=False,
     )
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
-        init=False,
     )
 
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
-        init=False,
     )
 
     is_deleted: Mapped[bool] = mapped_column(
@@ -56,13 +52,11 @@ class User(Base):
         server_default=text("false"),
         nullable=False,
         index=True,
-        init=False,
     )
     is_superuser: Mapped[bool] = mapped_column(
         Boolean,
         server_default=text("false"),
         nullable=False,
-        init=False,
     )
 
     user_threads = relationship(

@@ -37,7 +37,6 @@ class Message(Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid()"),
-        init=False,
     )
 
     thread_id: Mapped[uuid.UUID] = mapped_column(
@@ -60,7 +59,7 @@ class Message(Base):
     parts: Mapped[list[Any]] = mapped_column(
         JSONB,
         nullable=False,
-        default_factory=list,
+        default=list,
         server_default=text("'[]'::jsonb"),
     )
 
@@ -75,7 +74,6 @@ class Message(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
-        init=False,
     )
 
     thread = relationship("Thread", back_populates="messages")

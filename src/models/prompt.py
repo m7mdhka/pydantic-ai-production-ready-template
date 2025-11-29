@@ -11,6 +11,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -25,10 +26,7 @@ if TYPE_CHECKING:
 
 
 class Prompt(Base):
-    """Prompt Container.
-
-    Stores the latest/current state of the prompt directly for easy access.
-    """
+    """Prompt Container."""
 
     __tablename__ = "prompts"
 
@@ -36,7 +34,6 @@ class Prompt(Base):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid()"),
-        init=False,
     )
 
     slug: Mapped[str] = mapped_column(
@@ -44,27 +41,15 @@ class Prompt(Base):
         unique=True,
         index=True,
         nullable=False,
-        default="",
-        comment=("Unique identifier for code usage (e.g. 'summary_agent')"),
     )
 
-    name: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-        default="",
-    )
-
-    content: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        default="",
-    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    content: Mapped[str | None] = mapped_column(Text, nullable=True, default="")
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
-        init=False,
     )
 
     versions: Mapped[list["PromptVersion"]] = relationship(
@@ -75,7 +60,6 @@ class Prompt(Base):
     )
 
     def __repr__(self) -> str:
-        """Return a string representation of the prompt."""
         return f"<Prompt id={self.id} slug={self.slug}>"
 
 
@@ -84,11 +68,18 @@ class PromptVersion(Base):
 
     __tablename__ = "prompt_versions"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "prompt_id",
+            "version_number",
+            name="uq_prompt_version_number",
+        ),
+    )
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid()"),
-        init=False,
     )
 
     prompt_id: Mapped[uuid.UUID] = mapped_column(
@@ -98,18 +89,9 @@ class PromptVersion(Base):
         index=True,
     )
 
-    version_number: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
-
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-
-    commit_message: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
-    )
-
+    commit_message: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         server_default=text("false"),
@@ -120,7 +102,6 @@ class PromptVersion(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
-        init=False,
     )
 
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -130,10 +111,9 @@ class PromptVersion(Base):
     )
 
     prompt: Mapped["Prompt"] = relationship("Prompt", back_populates="versions")
-    created_by: Mapped["User" | None] = relationship("User")
+    created_by: Mapped["User | None"] = relationship("User")
 
     def __repr__(self) -> str:
-        """Return a string representation of the prompt version."""
         return (
             f"<PromptVersion version={self.version_number} prompt_id={self.prompt_id}>"
         )

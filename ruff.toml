@@ -47,9 +47,11 @@ ignore = [
     "E501",
     "E741",
     "FAST001",
+    "D105",
     "RUF012",
+    "PLR0913",
     "PLR2004",
-    "FBT001",  # Boolean positional args in framework interfaces (e.g., AuthProvider)
+    "FBT001",
 ]
 
 fixable = ["ALL"]
@@ -75,4 +77,3 @@ lines-after-imports = 2
 "*/tests/*" = ["S101"]
 "conftest.py" = ["S101"]
 "__init__.py" = ["F401", "F403"]
-"src/models/*.py" = ["TC010"]  # Ignore union type string member errors in models

@@ -53,23 +53,20 @@ class PromptService:
         )
         return list(result.scalars().all())
 
-    async def get_prompt_details_for_admin(self, prompt_id: str) -> Prompt | None:
+    async def get_prompt_details_for_admin(
+        self,
+        prompt_id: str,
+    ) -> Prompt | None:
         """Get full details with versions for the Editor."""
+        p_uuid = uuid.UUID(prompt_id)
+
         stmt = (
             select(Prompt)
-            .where(Prompt.id == prompt_id)
+            .where(Prompt.id == p_uuid)
             .options(selectinload(Prompt.versions))
         )
         result = await self.session.execute(stmt)
-        prompt = result.scalar_one_or_none()
-
-        if prompt:
-            prompt.versions.sort(
-                key=lambda x: x.version_number,
-                reverse=True,
-            )
-
-        return prompt
+        return result.scalar_one_or_none()
 
     async def save_prompt_commit(
         self,
@@ -78,32 +75,53 @@ class PromptService:
         content: str,
         commit_msg: str,
         prompt_id_str: str | None = None,
+        user_id: uuid.UUID | None = None,
     ) -> uuid.UUID:
         """Save a prompt commit."""
-        if not prompt_id_str:
-            new_prompt = Prompt(slug=slug, name=name, content=content)
-            self.session.add(new_prompt)
-            await self.session.flush()
-            prompt_id = new_prompt.id
-            next_ver = 1
-        else:
-            prompt_id = uuid.UUID(prompt_id_str)
-            await self.session.execute(
-                update(Prompt)
-                .where(Prompt.id == prompt_id)
-                .values(
-                    name=name,
-                    content=content,
-                    slug=slug,
-                ),
-            )
+        prompt_id: uuid.UUID
 
-            max_ver = await self.session.execute(
-                select(func.max(PromptVersion.version_number)).where(
-                    PromptVersion.prompt_id == prompt_id,
-                ),
-            )
-            next_ver = (max_ver.scalar() or 0) + 1
+        if prompt_id_str:
+            prompt_id = uuid.UUID(prompt_id_str)
+        else:
+            stmt = select(Prompt).where(Prompt.slug == slug)
+            result = await self.session.execute(stmt)
+            existing_prompt = result.scalar_one_or_none()
+
+            if existing_prompt:
+                prompt_id = existing_prompt.id
+            else:
+                new_prompt = Prompt(slug=slug, name=name, content=content)
+                self.session.add(new_prompt)
+                await self.session.flush()
+                await self.session.refresh(new_prompt)
+
+                new_version = PromptVersion(
+                    prompt_id=new_prompt.id,
+                    content=content,
+                    commit_message=commit_msg,
+                    is_active=True,
+                    created_by_id=user_id,
+                    version_number=1,
+                )
+                self.session.add(new_version)
+                await self.session.commit()
+                await self.invalidate_cache(slug)
+
+                return new_prompt.id
+
+        await self.session.execute(
+            update(Prompt)
+            .where(Prompt.id == prompt_id)
+            .values(name=name, content=content, slug=slug),
+        )
+
+        max_ver_result = await self.session.execute(
+            select(func.max(PromptVersion.version_number)).where(
+                PromptVersion.prompt_id == prompt_id,
+            ),
+        )
+        current_max = max_ver_result.scalar()
+        next_ver = (current_max or 0) + 1
 
         await self.session.execute(
             update(PromptVersion)
@@ -116,10 +134,11 @@ class PromptService:
             content=content,
             commit_message=commit_msg,
             is_active=True,
-            created_by_id=None,
+            created_by_id=user_id,
             version_number=next_ver,
         )
         self.session.add(new_version)
+
         await self.session.commit()
         await self.invalidate_cache(slug)
 
@@ -127,8 +146,11 @@ class PromptService:
 
     async def activate_version(self, version_id: str, prompt_id: str) -> bool:
         """Rollbacks/Activates a specific version."""
+        v_uuid = uuid.UUID(version_id)
+        p_uuid = uuid.UUID(prompt_id)
+
         ver_result = await self.session.execute(
-            select(PromptVersion).where(PromptVersion.id == version_id),
+            select(PromptVersion).where(PromptVersion.id == v_uuid),
         )
         target_version = ver_result.scalar_one_or_none()
 
@@ -136,24 +158,25 @@ class PromptService:
             return False
 
         prompt_res = await self.session.execute(
-            select(Prompt).where(Prompt.id == prompt_id),
+            select(Prompt).where(Prompt.id == p_uuid),
         )
         prompt = prompt_res.scalar_one_or_none()
 
         if prompt:
             await self.session.execute(
                 update(PromptVersion)
-                .where(PromptVersion.prompt_id == prompt_id)
+                .where(PromptVersion.prompt_id == p_uuid)
                 .values(is_active=False),
             )
 
             target_version.is_active = True
 
             prompt.content = target_version.content
+
             self.session.add(prompt)
+            self.session.add(target_version)
 
             await self.session.commit()
-
             await self.invalidate_cache(prompt.slug)
             return True
 

@@ -8,8 +8,7 @@ from src.database.database import Base
 target_metadata = Base.metadata
 
 def include_object(object, name, type_, reflected, compare_to):
-    """
-    Helps Alembic decide which database objects to track.
+    """Helps Alembic decide which database objects to track.
     Returns False if the object should be ignored.
     """
     if type_ == "table" and name and name.startswith("LiteLLM"):
