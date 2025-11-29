@@ -274,6 +274,87 @@ make pre-commit-install  # Install pre-commit hooks
 make pre-commit-run      # Run pre-commit hooks on all files
 ```
 
+### Commitizen - Conventional Commits
+
+This project uses [Commitizen](https://commitizen-tools.github.io/commitizen/) to ensure consistent and semantic commit messages following the [Conventional Commits](https://www.conventionalcommits.org/) standard.
+
+#### Using `cz commit`
+
+Instead of using `git commit`, use Commitizen's interactive CLI:
+
+```bash
+uv run cz commit
+```
+
+This will guide you through creating a properly formatted commit message with:
+
+1. **Type**: Select the type of change (feat, fix, docs, style, refactor, test, chore, etc.)
+2. **Scope** (optional): Specify the area of the codebase affected
+3. **Subject**: Short description of the change
+4. **Body** (optional): Longer description providing context
+5. **Breaking changes** (optional): Describe any breaking changes
+6. **Footer** (optional): Reference issues, PRs, etc.
+
+#### Example Commit Flow
+
+```bash
+# Stage your changes
+git add .
+
+# Use Commitizen to create a commit
+uv run cz commit
+
+# Example output:
+# ? Select the type of change you are committing: feat
+# ? What is the scope of this change? (optional): api
+# ? Write a short and imperative summary: add user authentication endpoint
+# ? Provide additional contextual information: (optional)
+# ? Is this a BREAKING CHANGE? No
+# ? Footer: (optional)
+
+# Result: feat(api): add user authentication endpoint
+```
+
+#### Commit Message Format
+
+The standard format is:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Types:**
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, missing semicolons, etc.)
+- `refactor`: Code refactoring without changing functionality
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks (build, CI/CD, dependencies)
+- `ci`: CI/CD configuration changes
+- `build`: Build system changes
+
+**Examples:**
+
+```bash
+feat(auth): add JWT authentication
+fix(database): resolve connection pool timeout
+docs(readme): update installation instructions
+test(api): add integration tests for health endpoint
+```
+
+#### Benefits
+
+- ✅ Automatically validates commit messages
+- ✅ Enables semantic versioning and automatic changelog generation
+- ✅ Improves collaboration through clear commit history
+- ✅ Enforced by pre-commit hooks (commit-msg stage)
+
 ## Available Commands
 
 Run `make help` to see all available commands, or use:
