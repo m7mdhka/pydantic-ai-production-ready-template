@@ -149,6 +149,43 @@ Run `make help` to see all available commands, or use:
 - `make docker-logs` - View production Docker services logs
 - `make docker-restart` - Restart production Docker services
 
+## Admin Panel
+
+The application includes a built-in admin panel for managing prompts, users, and environment variables.
+
+### Accessing the Admin Panel
+
+1. Start the application:
+   ```bash
+   make run-dev
+   ```
+
+2. Navigate to `http://localhost:8000/admin` in your browser.
+
+3. Log in using your superuser credentials (create one using `make createsuperuser` if you haven't already).
+
+### Features
+
+#### Prompt Management
+Create, edit, and version control your AI prompts directly from the admin interface.
+
+![Prompt Editor](assets/images/admin_panel_1.png)
+
+#### Version Control
+Track changes to your prompts with commit messages and easy rollback capabilities.
+
+![Version Control](assets/images/admin_panel_2.png)
+
+#### User Management
+Manage system users, roles, and permissions.
+
+![User Management](assets/images/admin_panel_3.png)
+
+#### Environment Variables
+Securely manage environment variables and configuration settings.
+
+![Environment Variables](assets/images/admin_panel_4.png)
+
 ## License
 
 [Add your license here]
