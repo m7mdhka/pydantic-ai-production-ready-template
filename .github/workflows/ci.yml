@@ -34,6 +34,13 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-groups
 
+      - name: Load environment variables
+        run: |
+          set -a
+          source ci.env
+          set +a
+          env | grep -E '^(ENVIRONMENT|LOGFIRE_TOKEN|DATABASE_|REDIS_|JWT_|LITELLM_|DEBUG|ACCESS_TOKEN_|ALLOWED_ORIGINS)' >> $GITHUB_ENV
+
       - name: Run tests
         run: uv run nox -s test -- --junitxml junit.xml
 
