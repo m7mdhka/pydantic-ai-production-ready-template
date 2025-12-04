@@ -147,7 +147,10 @@ class AuthService:
                 algorithms=[settings.jwt_algorithm],
                 issuer=settings.jwt_issuer,
                 audience=settings.jwt_audience,
-                options={"verify_aud": True},
+                options={
+                    "verify_aud": True,
+                    "leeway": settings.clock_skew_leeway_seconds,
+                },
             )
             email: str | None = payload.get("sub", None)
             if email is None:

@@ -97,6 +97,17 @@ class Settings(BaseSettings):
         default="pydantic-ai-production-ready-template",
         description=("JWT audience claim (aud) - identifies the intended recipient"),
     )
+    clock_skew_leeway_seconds: int = Field(
+        default=120,
+        ge=0,
+        le=300,
+        description=(
+            "Clock skew tolerance for JWT exp/nbf validation in seconds "
+            "(RFC 7519: 'usually no more than a few minutes'). "
+            "Default: 120 seconds (2 minutes). "
+            "Max: 300 seconds (5 minutes)."
+        ),
+    )
 
     litellm_base_url: HttpUrl = Field(default=HttpUrl("http://localhost:4000"))
     litellm_api_key: SecretStr = Field(default=SecretStr(""))

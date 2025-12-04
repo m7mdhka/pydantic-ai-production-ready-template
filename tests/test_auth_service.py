@@ -589,3 +589,127 @@ async def test_create_token_includes_issuer_audience(
     assert payload["iss"] == settings.jwt_issuer
     assert payload["aud"] == settings.jwt_audience
     assert "exp" in payload
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_token_expired_within_leeway(
+    db_session: AsyncSession,
+) -> None:
+    """Test token expired within clock skew leeway is still accepted."""
+    auth_service = AuthService(db_session)
+
+    # Create a user
+    user = User(
+        name="Test User",
+        email="test@example.com",
+        hashed_password=hash_password("SecurePass123"),
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+
+    # Create token expired 60s ago (within default 120s leeway)
+    expired_token = jwt.encode(
+        {
+            "sub": user.email,
+            "exp": datetime.now(UTC) - timedelta(seconds=60),
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+        },
+        # pylint: disable=no-member
+        settings.jwt_secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+    # Should succeed because it's within leeway
+    retrieved_user = await auth_service.get_user_from_token(expired_token)
+    assert retrieved_user.id == user.id
+    assert retrieved_user.email == user.email
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_token_expired_beyond_leeway(
+    db_session: AsyncSession,
+) -> None:
+    """Test that token expired beyond clock skew leeway is rejected."""
+    auth_service = AuthService(db_session)
+
+    # Create token expired 5 min ago (beyond default 120s leeway)
+    expired_token = jwt.encode(
+        {
+            "sub": "test@example.com",
+            "exp": datetime.now(UTC) - timedelta(minutes=5),
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+        },
+        # pylint: disable=no-member
+        settings.jwt_secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+    # Should fail because it's beyond leeway
+    with pytest.raises(TokenValidationError):
+        await auth_service.get_user_from_token(expired_token)
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_token_nbf_within_leeway(
+    db_session: AsyncSession,
+) -> None:
+    """Test token with nbf claim slightly in future within leeway accepted."""
+    auth_service = AuthService(db_session)
+
+    # Create a user
+    user = User(
+        name="Test User",
+        email="test@example.com",
+        hashed_password=hash_password("SecurePass123"),
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+
+    # Create token with nbf 60s in future (within default 120s leeway)
+    future_token = jwt.encode(
+        {
+            "sub": user.email,
+            "exp": datetime.now(UTC) + timedelta(hours=1),
+            "nbf": datetime.now(UTC) + timedelta(seconds=60),
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+        },
+        # pylint: disable=no-member
+        settings.jwt_secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+    # Should succeed because nbf is within leeway
+    retrieved_user = await auth_service.get_user_from_token(future_token)
+    assert retrieved_user.id == user.id
+    assert retrieved_user.email == user.email
+
+
+@pytest.mark.asyncio
+async def test_get_user_from_token_nbf_beyond_leeway(
+    db_session: AsyncSession,
+) -> None:
+    """Test token with nbf claim far in future beyond leeway is rejected."""
+    auth_service = AuthService(db_session)
+
+    # Create token with nbf 5 min in future (beyond default 120s leeway)
+    future_token = jwt.encode(
+        {
+            "sub": "test@example.com",
+            "exp": datetime.now(UTC) + timedelta(hours=1),
+            "nbf": datetime.now(UTC) + timedelta(minutes=5),
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+        },
+        # pylint: disable=no-member
+        settings.jwt_secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+    # Should fail because nbf is beyond leeway
+    with pytest.raises(TokenValidationError):
+        await auth_service.get_user_from_token(future_token)
